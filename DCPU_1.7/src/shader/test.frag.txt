@@ -1,0 +1,24 @@
+uniform sampler2D noiseTex;
+varying vec4 diffuse;
+varying vec3 normal;
+varying vec4 verpos;
+
+void main()
+{
+	float NdotL;
+	vec4 color;
+	float att,dist;
+
+	vec3 aux = vec3(gl_LightSource[0].position-verpos);
+	
+	NdotL = max(dot(normal,normalize(aux)),0.0);
+	if (NdotL>=0) {
+		dist = length(aux);
+		att = 1.0 / (gl_LightSource[0].quadraticAttenuation * dist * dist+10);
+		color = att*(NdotL)*diffuse+texture2D(noiseTex, vec2(gl_FragCoord.x/256.0, gl_FragCoord.y/256.0))/256.0;
+	} else {
+		color = vec4(0, 0, 0, 1);
+	}
+	
+	gl_FragColor = color; 
+}

@@ -1,0 +1,16 @@
+void main()
+{
+	vec4 lightAngle;
+	vec4 pos;
+	lightAngle = normalize(gl_Vertex-gl_ModelViewMatrixInverse*gl_LightSource[0].position);
+	if (dot(gl_Normal,lightAngle.xyz)<0.0) {
+		if (gl_Color.r>0.0) {
+			pos = gl_Vertex+lightAngle*10.0;
+		} else {
+			pos = gl_Vertex;
+		}
+	} else {
+		pos = vec4(0.0, 0.0, 0.0, 0.0);
+	}
+	gl_Position =  gl_ModelViewProjectionMatrix*pos;
+}

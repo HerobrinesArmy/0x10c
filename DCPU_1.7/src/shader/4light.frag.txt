@@ -1,0 +1,70 @@
+uniform sampler2D noiseTex;
+/*uniform samplerCube shadowMap;*/
+varying vec3 diffuse1;
+varying vec3 normal;
+varying vec4 verpos;
+
+/*float unpack(const vec4 val)
+{
+	int rr = (int(val.r*255.0));
+	int gg = (int(val.g*255.0))<<8;
+	int bb = (int(val.b*255.0))<<16;
+	return float(rr+gg+bb)/2000;
+}*/
+
+void main()
+{
+	float NdotL;
+	vec3 color = texture2D(noiseTex, vec2(gl_FragCoord.x/256.0, gl_FragCoord.y/256.0)).rgb/256.0;
+	float att,dist;
+	vec3 aux;
+
+
+	aux = vec3(gl_LightSource[0].position-verpos);
+	NdotL = max(dot(normal,normalize(aux)),0.0);
+	dist = length(aux);
+	if (NdotL>=0.0) {
+		att = 1.0 / (gl_LightSource[0].quadraticAttenuation * dist * dist+1.0);
+		color += att*(NdotL)*diffuse1;
+	} else { 
+		color = vec3(0, 0, 0);
+/*		if ((int(gl_FragCoord.x/32.0)&3)!=0) {
+//			color = textureCube(shadowMap, vec3(-aux.x, aux.y, aux.z));
+			float ff = unpack(textureCube(shadowMap, vec3(-aux.x, aux.y, aux.z))); 
+			color = packFloatToVec4i(ff);
+			att = 1.0 / (gl_LightSource[0].quadraticAttenuation * dist * dist+1.0);
+			color = att*NdotL*diffuse1;
+		} else {
+//			color = packFloatToVec4i(length(aux));
+			color = textureCube(shadowMap, vec3(-aux.x, aux.y, aux.z));
+		}*/
+	}
+	
+/*	aux = vec3(gl_LightSource[1].position-verpos);
+	NdotL = max(dot(normal,normalize(aux)),0.0);
+	if (NdotL>=0.0) {
+		dist = length(aux);
+		att = 1.0 / (gl_LightSource[1].quadraticAttenuation * dist * dist+1.0);
+		color += att*(NdotL)*diffuse2;
+	} 
+	
+	aux = vec3(gl_LightSource[2].position-verpos);
+	NdotL = max(dot(normal,normalize(aux)),0.0);
+	if (NdotL>=0.0) {
+		dist = length(aux);
+		att = 1.0 / (gl_LightSource[2].quadraticAttenuation * dist * dist+1.0);
+		color += att*(NdotL)*diffuse3;
+	} 
+	
+	aux = vec3(gl_LightSource[3].position-verpos);
+	NdotL = max(dot(normal,normalize(aux)),0.0);
+	if (NdotL>=0.0) {
+		dist = length(aux);
+		att = 1.0 / (gl_LightSource[3].quadraticAttenuation * dist * dist+1.0);
+		color += att*(NdotL)*diffuse4;
+	}*/ 
+	
+	
+	gl_FragColor = vec4(color,1);
+/*	gl_FragColor = textureCube(shadowMap, vec3(-aux.x, aux.y, aux.z));*/ 
+}

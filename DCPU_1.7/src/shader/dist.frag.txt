@@ -1,0 +1,16 @@
+/*varying float CameraDepth;*/
+varying vec4 pos;
+
+vec4 packFloatToVec4i(const float value)
+{
+	int vv = int(value*2000);
+	float r = float(vv&255)/256.0;
+	float g = float((vv>>8)&255)/256.0;
+	float b = float((vv>>16)&255)/256.0;
+	return vec4(r, g, b, 1);
+}
+
+void main()
+{
+    gl_FragColor = packFloatToVec4i(length(pos));
+}

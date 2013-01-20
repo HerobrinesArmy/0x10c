@@ -1,0 +1,15 @@
+varying vec4 diffuse;
+varying vec3 normal;
+varying vec4 verpos;
+
+void main()
+{
+	vec4 ecPos;
+	vec3 aux;
+	normal = gl_NormalMatrix * gl_Normal;
+	
+	verpos =  gl_ModelViewMatrix * gl_Vertex;
+	diffuse = gl_FrontMaterial.diffuse * gl_LightSource[0].diffuse;
+	
+	gl_Position =  gl_ModelViewProjectionMatrix*gl_Vertex;
+}

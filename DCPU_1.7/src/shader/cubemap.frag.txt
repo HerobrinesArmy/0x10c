@@ -1,0 +1,8 @@
+uniform samplerCube envMap;
+varying vec4 verpos;
+
+void main()
+{
+	gl_FragColor = textureCube(envMap, verpos);
+//	gl_FragColor = vec4(verpos.x*0.5+0.5, verpos.y*0.5+0.5, verpos.z*0.5+0.5, 1);
+}

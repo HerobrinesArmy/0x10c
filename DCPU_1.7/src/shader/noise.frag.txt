@@ -1,0 +1,7 @@
+uniform sampler2D noiseTex;
+
+void main()
+{
+	vec3 col = texture2D(noiseTex, vec2(gl_FragCoord.x/256.0, gl_FragCoord.y/256.0))*0.1;
+	gl_FragColor = vec4(col.r, col.g, col.b, 16.0/256.0);
+}

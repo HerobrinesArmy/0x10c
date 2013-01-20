@@ -1,0 +1,43 @@
+uniform sampler2D tex;
+varying float dist;
+
+void main()
+{
+	float u = gl_TexCoord[0].s*128.0;
+	float v = gl_TexCoord[0].t*128.0;
+	int uu = int(u);
+	int vv = int(v);
+	float uf = fract(u);
+	float vf = fract(v);
+	for (int i=0; i<4; i++) {
+		uf = 0.5-cos(uf*3.14)*0.5;
+		vf = 0.5-cos(vf*3.14)*0.5;
+	}
+
+	int uu2 = uu+1;
+	int vv2 = vv;
+	if (uu<128 || uu>127+128) vv=96;
+	if (uu2<128 || uu2>127+128) vv2=96;
+	
+	
+	vec3 c0 = texture2D(tex, vec2(float(uu)/128.0, float(vv)/128.0)).rgb;
+	vec3 c1 = texture2D(tex, vec2(float(uu2)/128.0, float(vv2)/128.0)).rgb;
+	vec3 c2 = texture2D(tex, vec2(float(uu)/128.0, float(vv+1)/128.0)).rgb;
+	vec3 c3 = texture2D(tex, vec2(float(uu2)/128.0, float(vv2+1)/128.0)).rgb;
+	
+	vec3 cc0 = mix(c0, c1, uf);
+	vec3 cc1 = mix(c2, c3, uf);
+	vec3 color = mix(mix(cc0, cc1, vf), vec3(1, 1, 1), 0.05);
+
+	float dd = 1.0-dist;
+	if (dd<0.0) dd = 0.0;
+	if (dd>1.0) dd = 1.0;
+	float scanline = fract(v*2.0+0.5)*2.0;
+	if (scanline>1) scanline=2-scanline;
+	scanline = 1-scanline;
+	scanline = scanline*scanline;
+	scanline = 1-scanline;
+	color = mix(color, vec3(0.00, 0.00, 0.00), dd*scanline*0.3);
+	
+	gl_FragColor = vec4(color, 1.0);
+}

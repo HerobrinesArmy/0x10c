@@ -1,0 +1,9 @@
+varying float dist;
+
+void main()
+{
+	gl_TexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
+	vec4 pos = gl_ModelViewProjectionMatrix*gl_Vertex;
+	dist = pos.z; 
+	gl_Position = pos;
+}
