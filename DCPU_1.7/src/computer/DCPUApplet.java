@@ -30,8 +30,11 @@ public class DCPUApplet extends Applet
     DCPU cpu = new DCPU();
     this.display = ((VirtualMonitor)new VirtualMonitor().connectTo(cpu));
     this.keyboard = ((VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu));
+    new VirtualClock().connectTo(cpu);
+    new VirtualFloppyDrive().connectTo(cpu);
     try {
-      DCPU.load(cpu.ram);
+    	new Assembler(cpu.ram).assemble("testfile.txt");
+//      DCPU.load(cpu.ram);
     } catch (Exception e1) {
       e1.printStackTrace();
     }

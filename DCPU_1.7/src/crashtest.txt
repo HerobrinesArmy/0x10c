@@ -1,0 +1,26 @@
+;This is a test of the crash (catching fire) behavior of the DCPU
+;Source code stolen from somewhere because I'm lazy
+hwn i
+:map_hardware
+	sub i, 1
+	hwq i
+	ife b, 0x7349
+		ife a, 0xF615
+			set pc, set_monitor
+	ifn i, 0
+		set pc, map_hardware
+
+:set_monitor
+	set [MONITOR], i
+
+:setup_monitor
+	set a, 0
+	set b, 0x8000
+	hwi [MONITOR]
+	
+:crash
+	IAQ 0xFA11
+	INT 0xDEAD
+	SET PC, crash
+
+:MONITOR	dat 0x0000

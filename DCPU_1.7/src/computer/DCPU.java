@@ -258,7 +258,7 @@ public class DCPU
     }
     
     if (isOnFire) {
-      cycles += 10;
+//      cycles += 10; //Disabled to match speed of crashing seen in livestreams
       int pos = (int)(Math.random() * 65536) & 0xFFFF;
       int val = (int)(Math.random() * 65536) & 0xFFFF;
       int len = (int)(1 / (Math.random() + 0.001)) - 80;
@@ -784,7 +784,7 @@ public class DCPU
     new Assembler(cpu.ram).assemble("testfile.txt");
 //    cpu.load(cpu.ram);
     
-    cpu.dump(cpu.ram, 0, 1024);
+    DCPU.dump(cpu.ram, 0, 1024);
     if (args.length == 0) {
       testCpu(cpu.ram);
       return;

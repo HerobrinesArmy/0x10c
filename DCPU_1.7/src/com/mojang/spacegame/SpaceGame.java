@@ -12,6 +12,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,8 +37,10 @@ import util.GLX;
 import com.mojang.spacegame.renderer.Tesselator;
 import com.mojang.spacegame.renderer.Textures;
 import computer.AWTKeyMapping;
+import computer.Assembler;
 import computer.DCPU;
 import computer.VirtualClock;
+import computer.VirtualFloppyDrive;
 import computer.VirtualKeyboard;
 import computer.VirtualMonitor;
 public class SpaceGame
@@ -60,6 +63,7 @@ public class SpaceGame
   private VirtualClock clock = (VirtualClock) new VirtualClock().connectTo(cpu);
   private VirtualMonitor vmonitor = (VirtualMonitor) new VirtualMonitor().connectTo(cpu);//this.cpu.ram, 32768);
   private VirtualKeyboard vkeyboard = (VirtualKeyboard) new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);//this.cpu.ram, 36864, new AWTKeyMapping());
+  private VirtualFloppyDrive vfloppydrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
 //  {try {
 ////      DCPU.load(cpu.ram);
 //    } catch (Exception e1) {
@@ -470,9 +474,9 @@ private static ByteBuffer loadIcon(URL url)
           xx = 0.3F;
           yy = 1.7F;
           zz = 3.95F;
-          rr = 0.5F;
-          gg = 0.5F;
-          bb = 1.0F;
+          rr = 0.2f + 2f*((vmonitor.getLightColor() & 0xFF0000)>>16)/255F;
+          gg = 0.2f + 2f*((vmonitor.getLightColor() & 0xFF00)>>8)/255F;
+          bb = 0.2f + 2f*(vmonitor.getLightColor() & 0xFF)/255F;
           GL11.glLightf(16384 + j, 4617, 2.0F);
         } else {
           rr = gg = bb = 0.0F;
@@ -740,6 +744,12 @@ private static ByteBuffer loadIcon(URL url)
 		else
 		{
 			game = new SpaceGame(SpaceGame.class.getResourceAsStream("/computer/testdump.dmp"));
+			try {
+				new Assembler(game.cpu.ram).assemble("testfile.txt");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		try {
 			new GameFrame(game);
