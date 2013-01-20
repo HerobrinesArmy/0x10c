@@ -65,7 +65,7 @@ public class VirtualFloppyDrive extends DCPUHardware
     if (a == 0) {
     	dcpu.registers[1] = state;
     	dcpu.registers[2] = error;
-    	//It is unclear whether error should be set to NONE here and whether that should qualify as a change
+    	//It is unclear whether this should qualify as a change (interrupt-triggering)
     	error = ERROR_NONE;
     } else if (a == 1) {
     	if (dcpu.registers[3] == 0) {
@@ -167,7 +167,8 @@ public class VirtualFloppyDrive extends DCPUHardware
 		}
 	}
 	
-	public void eject() {
+	public Floppy eject() {
+		Floppy ejected = floppy;
 		floppy = null;
 		if (state == STATE_BUSY) {
 			operation = NOOP;
@@ -175,6 +176,7 @@ public class VirtualFloppyDrive extends DCPUHardware
 		} else {
 			setState(STATE_NO_MEDIA);
 		}
+		return ejected;
 	}
 	
 	private class FloppyOperation {
