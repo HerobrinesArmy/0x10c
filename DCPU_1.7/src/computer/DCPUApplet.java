@@ -11,7 +11,8 @@ import java.awt.image.DataBufferInt;
 public class DCPUApplet extends Applet
   implements Runnable
 {
-  private VirtualMonitor display;
+	private static final long serialVersionUID = 1L;
+	private VirtualMonitor display;
   private VirtualKeyboard keyboard;
   private boolean stop = false;
 

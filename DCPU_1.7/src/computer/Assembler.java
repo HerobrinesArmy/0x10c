@@ -371,8 +371,8 @@ line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
 
   private class Macro
   {
-    public List<String> tokens = new ArrayList();
-    public List<String> params = new ArrayList();
+    public List<String> tokens = new ArrayList<String>();
+    public List<String> params = new ArrayList<String>();
 
     private Macro() {  }
 
@@ -404,16 +404,16 @@ line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
 
   private class Scope
   {
-    public Map<String, Assembler.Position> labelPositions = new HashMap();
+    public Map<String, Assembler.Position> labelPositions = new HashMap<String, Assembler.Position>();
     public Scope parent;
-    public List<Scope> inheritedScopes = new ArrayList();
+    public List<Scope> inheritedScopes = new ArrayList<Scope>();
 
     public Scope(Scope parent) {
       this.parent = parent;
     }
 
     public Assembler.Position findLabel(String label) {
-      return findLabel(label, new ArrayList());
+      return findLabel(label, new ArrayList<Scope>());
     }
 
     public Assembler.Position findLabel(String label, List<Scope> testedScopes) {
