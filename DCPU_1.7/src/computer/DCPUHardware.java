@@ -1,7 +1,5 @@
 package computer;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Random;
 
 public class DCPUHardware

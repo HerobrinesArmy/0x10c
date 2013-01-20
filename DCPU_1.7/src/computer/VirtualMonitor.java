@@ -1,7 +1,7 @@
 package computer;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
+
 import javax.imageio.ImageIO;
 
 public class VirtualMonitor extends DCPUHardware
@@ -24,14 +24,14 @@ public class VirtualMonitor extends DCPUHardware
   private int startDelay = 0;
 
   public VirtualMonitor() {
-    super(1934226965, 6146, 476875574);
+    super(0x7349f615, 0x1802, 0x1c6c8b36);
 
     resetPalette();
 
     int[] pixels = new int[4096];
     try {
       ImageIO.read(VirtualMonitor.class.getResource("/dcpu/hardware/lem/font.png")).getRGB(0, 0, 128, 32, pixels, 0, 128);
-      ImageIO.read(VirtualMonitor.class.getResource("/dcpu/hardware/lem/boot.png")).getRGB(0, 0, 128, 96, this.loadImage, 0, 128);
+      ImageIO.read(VirtualMonitor.class.getResource("/dcpu/hardware/lem/boot.png")).getRGB(0, 0, 128, 96, loadImage, 0, 128);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -45,9 +45,7 @@ public class VirtualMonitor extends DCPUHardware
         for (int yy = 0; yy < 8; yy++)
           if ((pixels[(xo + xx + (yo + yy) * 128)] & 0xFF) > 128)
             bb |= 1 << yy;
-        int tmp226_225 = (ro + xx / 2);
-        char[] tmp226_217 = this.font; 
-        tmp226_217[tmp226_225] = (char)(tmp226_217[tmp226_225] | bb << (xx + 1 & 0x1) * 8);
+        font[ro + xx / 2] = (char)(font[ro + xx / 2] | bb << (xx + 1 & 0x1) * 8);
       }
     }
   }
@@ -64,7 +62,7 @@ public class VirtualMonitor extends DCPUHardware
         g += 85;
         b += 85;
       }
-      this.palette[i] = (0xFF000000 | r << 16 | g << 8 | b);
+      palette[i] = (0xFF000000 | r << 16 | g << 8 | b);
     }
   }
 
@@ -74,31 +72,31 @@ public class VirtualMonitor extends DCPUHardware
       int b = (ch >> '\000' & 0xF) * 17;
       int g = (ch >> '\004' & 0xF) * 17;
       int r = (ch >> '\b' & 0xF) * 17;
-      this.palette[i] = (0xFF000000 | r << 16 | g << 8 | b);
+      palette[i] = (0xFF000000 | r << 16 | g << 8 | b);
     }
   }
 
   public void interrupt() {
-    int a = this.dcpu.registers[0];
+    int a = dcpu.registers[0];
     if (a == 0) {
-      if ((this.screenMemMap == 0) && (this.dcpu.registers[1] != 0)) {
-        this.startDelay = 60;
+      if ((screenMemMap == 0) && (dcpu.registers[1] != 0)) {
+        startDelay = 60;
       }
-      this.screenMemMap = this.dcpu.registers[1];
+      screenMemMap = dcpu.registers[1];
     } else if (a == 1) {
-      this.fontMemMap = this.dcpu.registers[1];
+      fontMemMap = dcpu.registers[1];
     } else if (a == 2) {
-      this.paletteMemMap = this.dcpu.registers[1];
+      paletteMemMap = dcpu.registers[1];
     } else if (a == 3) {
-      this.borderColor = (this.dcpu.registers[1] & 0xF);
+      borderColor = (dcpu.registers[1] & 0xF);
     } else if (a == 4) {
-      int offs = this.dcpu.registers[1];
-      for (int i = 0; i < this.font.length; i++) {
-        this.dcpu.ram[(offs + i & 0xFFFF)] = this.font[i];
+      int offs = dcpu.registers[1];
+      for (int i = 0; i < font.length; i++) {
+        dcpu.ram[(offs + i & 0xFFFF)] = font[i];
       }
-      this.dcpu.cycles += 256;
+      dcpu.cycles += 256;
     } else if (a == 5) {
-      int offs = this.dcpu.registers[1];
+      int offs = dcpu.registers[1];
       for (int i = 0; i < 16; i++) {
         int b = (i >> 0 & 0x1) * 10;
         int g = (i >> 1 & 0x1) * 10;
@@ -110,23 +108,23 @@ public class VirtualMonitor extends DCPUHardware
           g += 5;
           b += 5;
         }
-        this.dcpu.ram[(offs + i & 0xFFFF)] = (char)(r << 8 | g << 4 | b);
+        dcpu.ram[(offs + i & 0xFFFF)] = (char)(r << 8 | g << 4 | b);
       }
-      this.dcpu.cycles += 16;
+      dcpu.cycles += 16;
     }
   }
 
   public void render() {
-    if ((this.screenMemMap == 0) || (this.startDelay > 0)) {
+    if ((screenMemMap == 0) || (startDelay > 0)) {
       int reds = 0;
       int greens = 0;
       int blues = 0;
 
-      if ((this.startDelay > 0) && (this.startDelay < 10)) {
+      if ((startDelay > 0) && (startDelay < 10)) {
         for (int y = 0; y < 96; y++)
           for (int x = 0; x < 128; x++) {
-            int col = this.palette[0];
-            this.pixels[(x + y * 128)] = col;
+            int col = palette[0];
+            pixels[(x + y * 128)] = col;
             reds += (col & 0xFF0000);
             greens += (col & 0xFF00);
             blues += (col & 0xFF);
@@ -135,9 +133,9 @@ public class VirtualMonitor extends DCPUHardware
       else {
         for (int y = 0; y < 96; y++) {
           for (int x = 0; x < 128; x++) {
-            int cc = this.loadImage[(x + y * 128)] & 0xFF;
-            int col = this.palette[1];
-            this.pixels[(x + y * 128)] = col;
+            int cc = loadImage[(x + y * 128)] & 0xFF;
+            int col = palette[1];
+            pixels[(x + y * 128)] = col;
             reds += (col & 0xFF0000);
             greens += (col & 0xFF00);
             blues += (col & 0xFF);
@@ -146,14 +144,14 @@ public class VirtualMonitor extends DCPUHardware
       }
 
       int bgColor = 1;
-      if (this.startDelay < 26) {
-        bgColor = this.startDelay - 10;
+      if (startDelay < 26) {
+        bgColor = startDelay - 10;
       }
       if (bgColor < 0) bgColor = 0;
-      int color = this.palette[bgColor];
+      int color = palette[bgColor];
       for (int y = 96; y < 128; y++) {
         for (int x = 0; x < 128; x++) {
-          this.pixels[(x + y * 128)] = color;
+          pixels[(x + y * 128)] = color;
         }
       }
 
@@ -162,10 +160,10 @@ public class VirtualMonitor extends DCPUHardware
       greens += (color & 0xFF00) * borderPixels;
       blues += (color & 0xFF) * borderPixels;
 
-      reds = reds / (12288 + borderPixels) & 0xFF0000;
-      greens = greens / (12288 + borderPixels) & 0xFF00;
-      blues = blues / (12288 + borderPixels) & 0xFF;
-      this.lightColor = (reds | greens | blues);
+      reds = reds / (0x3000 + borderPixels) & 0xFF0000;
+      greens = greens / (0x3000 + borderPixels) & 0xFF00;
+      blues = blues / (0x3000 + borderPixels) & 0xFF;
+      lightColor = (reds | greens | blues);
     } else {
       long time = System.currentTimeMillis() / 16L;
       boolean blink = time / 20L % 2L == 0L;
@@ -173,27 +171,27 @@ public class VirtualMonitor extends DCPUHardware
       long greens = 0L;
       long blues = 0L;
 
-      char[] fontRam = this.font;
+      char[] fontRam = font;
       int charOffset = 0;
-      if (this.fontMemMap > 0) {
-        fontRam = this.dcpu.ram;
-        charOffset = this.fontMemMap;
+      if (fontMemMap > 0) {
+        fontRam = dcpu.ram;
+        charOffset = fontMemMap;
       }
-      if (this.paletteMemMap == 0)
+      if (paletteMemMap == 0)
         resetPalette();
       else {
-        loadPalette(this.dcpu.ram, this.paletteMemMap);
+        loadPalette(dcpu.ram, paletteMemMap);
       }
 
       for (int y = 0; y < 12; y++) {
         for (int x = 0; x < 32; x++) {
-          char dat = this.dcpu.ram[(this.screenMemMap + x + y * 32)];
+          char dat = dcpu.ram[(screenMemMap + x + y * 32)];
           int ch = dat & 0x7F;
           int colorIndex = dat >> '\b' & 0xFF;
           int co = charOffset + ch * 2;
 
-          int color = this.palette[(colorIndex & 0xF)];
-          int colorAdd = this.palette[(colorIndex >> 4 & 0xF)] - color;
+          int color = palette[(colorIndex & 0xF)];
+          int colorAdd = palette[(colorIndex >> 4 & 0xF)] - color;
           if ((blink) && ((dat & 0x80) > 0)) colorAdd = 0;
           int pixelOffs = x * 4 + y * 8 * 128;
 
@@ -201,7 +199,7 @@ public class VirtualMonitor extends DCPUHardware
             int bits = fontRam[(co + (xx >> 1))] >> (xx + 1 & 0x1) * 8 & 0xFF;
             for (int yy = 0; yy < 8; yy++) {
               int col = color + colorAdd * (bits >> yy & 0x1);
-              this.pixels[(pixelOffs + xx + yy * 128)] = col;
+              pixels[(pixelOffs + xx + yy * 128)] = col;
               reds += (col & 0xFF0000);
               greens += (col & 0xFF00);
               blues += (col & 0xFF);
@@ -210,10 +208,10 @@ public class VirtualMonitor extends DCPUHardware
         }
       }
 
-      int color = this.palette[this.borderColor];
+      int color = palette[borderColor];
       for (int y = 96; y < 128; y++) {
         for (int x = 0; x < 128; x++) {
-          this.pixels[(x + y * 128)] = color;
+          pixels[(x + y * 128)] = color;
         }
       }
 
@@ -222,15 +220,15 @@ public class VirtualMonitor extends DCPUHardware
       greens += (color & 0xFF00) * borderPixels;
       blues += (color & 0xFF) * borderPixels;
 
-      reds = reds / (12288 + borderPixels) & 0xFF0000;
-      greens = greens / (12288 + borderPixels) & 0xFF00;
-      blues = blues / (12288 + borderPixels) & 0xFF;
-      this.lightColor = (int)(reds | greens | blues);
+      reds = reds / (0x3000 + borderPixels) & 0xFF0000;
+      greens = greens / (0x3000 + borderPixels) & 0xFF00;
+      blues = blues / (0x3000 + borderPixels) & 0xFF;
+      lightColor = (int)(reds | greens | blues);
     }
   }
 
   public void tick60hz() {
-    if (this.startDelay > 0) this.startDelay -= 1; 
+    if (startDelay > 0) startDelay -= 1; 
   }
 
   public void setPixels(int[] pixels)
@@ -239,6 +237,6 @@ public class VirtualMonitor extends DCPUHardware
   }
 
   public int getLightColor() {
-    return this.lightColor;
+    return lightColor;
   }
 }

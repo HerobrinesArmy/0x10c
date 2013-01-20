@@ -22,65 +22,65 @@ public class VirtualKeyboard extends DCPUHardware
 
   public VirtualKeyboard(KeyMapping keyMapping)
   {
-    super(818902022, 4919, 515079825);
+    super(0x30cf7406, 0x1337, 0x1EB37E91);
     this.keyMapping = keyMapping;
   }
 
   public void keyTyped(int i) {
     if ((i <= 20) || (i > 127)) return;
-    if (this.keyBuffer[(this.kwp & 0x3F)] == 0) {
-      this.keyBuffer[(this.kwp++ & 0x3F)] = (char)i;
-      this.doInterrupt = true;
+    if (keyBuffer[(kwp & 0x3F)] == 0) {
+      keyBuffer[(kwp++ & 0x3F)] = (char)i;
+      doInterrupt = true;
     }
   }
 
   public void keyPressed(int key) {
-    int i = this.keyMapping.getKey(key);
+    int i = keyMapping.getKey(key);
     if (i < 0) return;
     if ((i < 20) && 
-      (this.keyBuffer[(this.kwp & 0x3F)] == 0)) {
-      this.keyBuffer[(this.kwp++ & 0x3F)] = (char)i;
+      (keyBuffer[(kwp & 0x3F)] == 0)) {
+      keyBuffer[(kwp++ & 0x3F)] = (char)i;
     }
 
-    this.isDown[i] = true;
-    this.doInterrupt = true;
+    isDown[i] = true;
+    doInterrupt = true;
   }
 
   public void keyReleased(int key) {
-    int i = this.keyMapping.getKey(key);
+    int i = keyMapping.getKey(key);
     if (i < 0) return;
-    this.isDown[i] = false;
-    this.doInterrupt = true;
+    isDown[i] = false;
+    doInterrupt = true;
   }
 
   public void interrupt() {
-    int a = this.dcpu.registers[0];
+    int a = dcpu.registers[0];
     if (a == 0) {
-      for (int i = 0; i < this.keyBuffer.length; i++) {
-        this.keyBuffer[i] = '\000';
+      for (int i = 0; i < keyBuffer.length; i++) {
+        keyBuffer[i] = 0;
       }
-      this.krp = 0;
-      this.kwp = 0;
+      krp = 0;
+      kwp = 0;
     } else if (a == 1) {
-      if ((this.dcpu.registers[2] = this.keyBuffer[(this.krp & 0x3F)]) != 0)
-        this.keyBuffer[(this.krp++ & 0x3F)] = '\000';
+      if ((dcpu.registers[2] = keyBuffer[(krp & 0x3F)]) != 0)
+        keyBuffer[(krp++ & 0x3F)] = 0;
     }
     else if (a == 2) {
-      int key = this.dcpu.registers[1];
+      int key = dcpu.registers[1];
       if ((key >= 0) && (key < 256))
-        this.dcpu.registers[2] = (char)(this.isDown[key] ? 1 : 0);
+        dcpu.registers[2] = (char)(isDown[key] ? 1 : 0);
       else
-        this.dcpu.registers[2] = '\000';
+        dcpu.registers[2] = 0;
     }
     else if (a == 3) {
-      this.interruptMessage = this.dcpu.registers[1];
+      interruptMessage = dcpu.registers[1];
     }
   }
 
   public void tick60hz() {
-    if (this.doInterrupt) {
-      if (this.interruptMessage != 0) this.dcpu.interrupt(this.interruptMessage);
-      this.doInterrupt = false;
+    if (doInterrupt) {
+      if (interruptMessage != 0) dcpu.interrupt(interruptMessage);
+      doInterrupt = false;
     }
   }
 }
