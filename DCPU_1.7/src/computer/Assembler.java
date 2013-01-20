@@ -247,6 +247,8 @@ line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
       }
       else if (tokens[i].startsWith(":")) {
         this.currentScope.labelPositions.put(tokens[i].substring(1), new Position(this.currentScope, this.pc));
+      } else if (tokens[i].endsWith(":")) {
+        this.currentScope.labelPositions.put(tokens[i].substring(0, tokens[i].length()-1), new Position(this.currentScope, this.pc));
       } else if (tokens[i].equalsIgnoreCase("#macro")) {
         String title = "";
         while (!tokens[i + 1].equals("{")) {
