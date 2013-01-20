@@ -10,7 +10,6 @@ import java.util.StringTokenizer;
 
 /**
  * Highly experimental, incomplete 1.7 update to Notch's 1.0 assembler
- * PICK n / [SP + next word] support known to be missing
  * Use at your own risk
  * @author Notch, Herobrine
  *
@@ -38,14 +37,10 @@ public class Assembler
   	if ((string.length() == 3) && (string.startsWith("[")) && (string.endsWith("]")) && (this.registers.indexOf(string.toUpperCase().substring(1, 2)) >= 0))
       return 8 + this.registers.indexOf(string.toUpperCase().substring(1, 2));//0x8-0xf
 
-  	//TODO [register + next word] (0x10-0x17)
-  	
   	if (string.toUpperCase().equals("PUSH") || string.toUpperCase().equals("[--SP]"))
       return 0x18;
     if (string.toUpperCase().equals("PEEK") || string.toUpperCase().equals("[SP]"))
       return 0x19;
-    if (string.toUpperCase().equals("PICK"))//0x1a | [SP + next word] / PICK n
-      return 0x1a;
     if (string.toUpperCase().equals("SP"))
       return 0x1b;
     if (string.toUpperCase().equals("PC"))
@@ -78,7 +73,16 @@ public class Assembler
       string = string.substring(1, string.length() - 1);
       if (string.indexOf("+") >= 0) {
         String[] tokens = string.split("\\+");
-      	if ((tokens[0].length() == 1) && (this.registers.indexOf(tokens[0].toUpperCase()) >= 0)) {
+        if ("SP".equals(tokens[0].toUpperCase())) {
+        	this.ram[this.pc++] = (char)parseNumber(tokens[1]);
+          return 0x1a;
+        }
+        else if ("SP".equals(tokens[1].toUpperCase())) {
+        	this.labelUsages.put(new Position(this.currentScope, this.pc), tokens[0]);
+	        this.ram[this.pc++] = 0xBEEF;
+	        return 0x1a;
+        }
+        else if ((tokens[0].length() == 1) && (this.registers.indexOf(tokens[0].toUpperCase()) >= 0)) {
           this.ram[this.pc++] = (char)parseNumber(tokens[1]);
           if (this.registers.indexOf(tokens[0].toUpperCase()) < 0) throw new IllegalArgumentException("Must be a register!");
           return 0x10 + this.registers.indexOf(tokens[0].toUpperCase());
@@ -105,14 +109,10 @@ public class Assembler
   	if ((string.length() == 3) && (string.startsWith("[")) && (string.endsWith("]")) && (this.registers.indexOf(string.toUpperCase().substring(1, 2)) >= 0))
       return 8 + this.registers.indexOf(string.toUpperCase().substring(1, 2));//0x8-0xf
 
-  	//TODO [register + next word] (0x10-0x17)
-  	
   	if (string.toUpperCase().equals("POP") || string.toUpperCase().equals("[SP++]"))
       return 0x18;
     if (string.toUpperCase().equals("PEEK") || string.toUpperCase().equals("[SP]"))
       return 0x19;
-    if (string.toUpperCase().equals("PICK"))//TODO PICK support//0x1a | [SP + next word] / PICK n
-      return 0x1a;
     if (string.toUpperCase().equals("SP"))
       return 0x1b;
     if (string.toUpperCase().equals("PC"))
@@ -146,8 +146,17 @@ public class Assembler
       string = string.substring(1, string.length() - 1);
       if (string.indexOf("+") >= 0) {
         String[] tokens = string.split("\\+");
-        if ((tokens[0].length() == 1) && (this.registers.indexOf(tokens[0].toUpperCase()) >= 0)) {
-          this.ram[this.pc++] = (char)parseNumber(tokens[1]);
+        if ("SP".equals(tokens[0].toUpperCase())) {
+        	this.ram[this.pc++] = (char)parseNumber(tokens[1]);
+          return 0x1a;
+        }
+        else if ("SP".equals(tokens[1].toUpperCase())) {
+        	this.labelUsages.put(new Position(this.currentScope, this.pc), tokens[0]);
+	        this.ram[this.pc++] = 0xBEEF;
+	        return 0x1a;
+        }
+        else if ((tokens[0].length() == 1) && (this.registers.indexOf(tokens[0].toUpperCase()) >= 0)) {
+        	this.ram[this.pc++] = (char)parseNumber(tokens[1]);
           if (this.registers.indexOf(tokens[0].toUpperCase()) < 0) throw new IllegalArgumentException("Must be a register!");
           return 0x10 + this.registers.indexOf(tokens[0].toUpperCase());
         } else {
@@ -172,7 +181,7 @@ public class Assembler
     if (string.startsWith("0x")) val = Integer.parseInt(string.substring(2), 16);
     else if (string.startsWith("0b")) val = Integer.parseInt(string.substring(2), 2);
     else val = Integer.parseInt(string);
-    val &= 65535;
+    val &= 0xFFFF;
     return val;
   }
 
@@ -201,7 +210,7 @@ public class Assembler
     }
 
     List<String> tokenList = new ArrayList<String>();
-line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
+    line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
     String delims = " \t,";//"\t,";
     StringTokenizer st = new StringTokenizer(line, delims + "\"[", true);
     while (st.hasMoreTokens()) {
@@ -214,20 +223,14 @@ line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
         token = "[" + st.nextToken("]").replaceAll(" ", "") + "]";
         if (st.hasMoreTokens()) st.nextToken("]");
       }
+      if (token.equalsIgnoreCase("PICK")) {
+      	st.nextToken();
+        token = "[SP+" + st.nextToken() + "]";
+      }
       if ((token.length() > 1) || (delims.indexOf(token) < 0)) {
-        tokenList.add(token);//.replaceAll("  ", " ").replaceAll(" \\+", "+").replaceAll("\\+ ", "+"));
+        tokenList.add(token);
       }
     }
-//    int stage = 0;
-//    int i = 0;
-//    int start = 0;
-//    for (String token : tokenList) {
-//    	if (stage == 0 && token.charAt(0) == '[' && token.charAt(token.length()-1) != ']') {
-//    		stage = 1;
-//    		start = i;
-//    	}
-//    	i++;
-//    }
     String[] tokens = (String[])tokenList.toArray(new String[0]);
 
     handleTokens(tokens);
