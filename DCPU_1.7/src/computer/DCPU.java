@@ -616,6 +616,7 @@ public class DCPU
     final VirtualMonitor display = (VirtualMonitor)new VirtualMonitor().connectTo(cpu);
     final VirtualKeyboard keyboard = (VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);
     final VirtualFloppyDrive floppyDrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
+    floppyDrive.insert(new FloppyDisk());
     final VirtualSleepChamber sleepChamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
     Thread t = new Thread() {
       public void run() {

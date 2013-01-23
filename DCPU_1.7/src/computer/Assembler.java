@@ -280,8 +280,11 @@ public class Assembler
       	int op = this.pc;
         this.ram[this.pc++] = 0;
         int opCode = OpCodes.basic.getId(tokens[i].toUpperCase());
-        i++; int b = decodeB(tokens[i]);
-        i++; int a = decodeA(tokens[i]);
+        i++;
+        int a = decodeA(tokens[i+1]);
+        int b = decodeB(tokens[i]);
+        i++;
+        
 //        if ((b >= 31) && (opCode < 12)) {
 //          throw new IllegalArgumentException("Can't assign a literal value!");
 //        }

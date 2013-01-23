@@ -1,10 +1,5 @@
 package computer;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 
 /**
  * Experimental, untested implementation of the MF35D Floppy Drive
@@ -46,15 +41,13 @@ public class VirtualFloppyDrive extends DCPUHardware
 //	private static final int WRITE_NANOSECONDS_PER_SECTOR = 16677524;
 	private static final int WRITE_CYCLES_PER_SECTOR = 1668;
 	
-	private final FloppyOperation NOOP = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
-	
 	private char state = STATE_NO_MEDIA;
 	private char error = ERROR_NONE;
 	private boolean interruptsEnabled;
 	private char message;
 	private int track;
-	private Floppy floppy;
-	private FloppyOperation operation = NOOP;
+	private FloppyDisk floppy;
+	private FloppyOperation operation = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 	
   public VirtualFloppyDrive() {
     super(0x4fd524c5, 0x000b, 0x1eb37e91);
@@ -78,8 +71,8 @@ public class VirtualFloppyDrive extends DCPUHardware
     	int sector = dcpu.registers[3];
     	if (sector <= MAX_SECTOR && (state == STATE_READY || state == STATE_READY_WP)) {
     		operation = new FloppyOperation(FloppyOperation.READ, sector, dcpu.registers[4], 
-    				dcpu.cycles + READ_CYCLES_PER_SECTOR + SEEK_CYCLES_PER_TRACK * 
-    				Math.abs(track - (sector % SECTORS_PER_TRACK)));
+    				dcpu.cycles + READ_CYCLES_PER_SECTOR + SEEK_CYCLES_PER_TRACK
+    				* Math.abs(track - (sector % SECTORS_PER_TRACK)));
     		dcpu.registers[1] = 1;
     		setState(STATE_BUSY);
     	} else {
@@ -96,8 +89,8 @@ public class VirtualFloppyDrive extends DCPUHardware
     	int sector = dcpu.registers[3];
     	if (sector <= MAX_SECTOR && state == STATE_READY) {
     		operation = new FloppyOperation(FloppyOperation.WRITE, sector, dcpu.registers[4], 
-    				dcpu.cycles + WRITE_CYCLES_PER_SECTOR + SEEK_CYCLES_PER_TRACK * 
-    				Math.abs(track - (sector % SECTORS_PER_TRACK)));
+    				dcpu.cycles + WRITE_CYCLES_PER_SECTOR + SEEK_CYCLES_PER_TRACK 
+    				* Math.abs(track - (sector % SECTORS_PER_TRACK)));
     		dcpu.registers[1] = 1;
     		setState(STATE_BUSY);
     	} else {
@@ -134,14 +127,14 @@ public class VirtualFloppyDrive extends DCPUHardware
 	}
 
 	public void tick60hz() {
-		if (dcpu.cycles >= operation.cycles) {
+		if ((operation.cycles -= dcpu.cycles) <= 0) {
 			switch (operation.type) {
 	  	case FloppyOperation.READ:
 	  		for (int i = 0; i < 512; i++) {
 	  			dcpu.ram[operation.memory + i] = floppy.data[operation.sector * WORDS_PER_SECTOR + i];
 	  		}
 	  		track = operation.sector % SECTORS_PER_TRACK;
-	  		operation = NOOP;
+	  		operation = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 	  		setState(floppy.isWriteProtected() ? STATE_READY_WP : STATE_READY, ERROR_NONE);
 	  		break;
 	  	case FloppyOperation.WRITE:
@@ -149,16 +142,16 @@ public class VirtualFloppyDrive extends DCPUHardware
 	  			floppy.data[operation.sector * WORDS_PER_SECTOR + i] = dcpu.ram[operation.memory + i];
 	  		}
 	  		track = operation.sector % SECTORS_PER_TRACK;
-	  		operation = NOOP;
+	  		operation = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 	  		setState(STATE_READY, ERROR_NONE);
 	  		break;
 	  	case FloppyOperation.NONE:
-	  	default:
+	  		new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 	  	}
 		}
   }
 	
-	public void insert(Floppy floppy) {
+	public void insert(FloppyDisk floppy) {
 		this.floppy = floppy;
 		if (floppy.isWriteProtected()) {
 			setState(STATE_READY_WP);
@@ -167,11 +160,11 @@ public class VirtualFloppyDrive extends DCPUHardware
 		}
 	}
 	
-	public Floppy eject() {
-		Floppy ejected = floppy;
+	public FloppyDisk eject() {
+		FloppyDisk ejected = floppy;
 		floppy = null;
 		if (state == STATE_BUSY) {
-			operation = NOOP;
+			operation = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 			setState(STATE_NO_MEDIA, ERROR_EJECT);
 		} else {
 			setState(STATE_NO_MEDIA);
@@ -194,35 +187,6 @@ public class VirtualFloppyDrive extends DCPUHardware
 			this.sector = sector;
 			this.memory = memory;
 			this.cycles = cycles;
-		}
-	}
-	
-	class Floppy {
-		public char[] data = new char[737280];
-
-		private boolean writeProtected;
-		
-		public Floppy(File file, boolean writeProtected) throws Exception {
-			this.writeProtected = writeProtected;
-			DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
-			try {
-	      for (int i = 0; ; i++)
-	        data[i] = dis.readChar();
-	    }
-	    catch (IOException e) {
-	      dis.close();
-	    }
-		}		
-		
-		public Floppy() {	
-		}
-		
-		public boolean isWriteProtected() {
-			return writeProtected;
-		}
-		
-		public void setWriteProtected(boolean writeProtected) {
-			this.writeProtected = writeProtected;
 		}
 	}
 }

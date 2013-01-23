@@ -1,7 +1,5 @@
-;The test utility from dcpu-ide.com, ported to work with Lettuce/Organic.
-;The programm curretly dosn't shows up every hardware... I need to change this. BUt for now, I'm to lazy. Maybe you could do?
+;Stole this and modified it to use as a testfile
 
-; Ported by max1220
 :preMonitor ; Finding the Screen, and map it to 0x8000
 HWN Z
 :preMonitor_Loop
@@ -73,31 +71,25 @@ SET A, 0
 HWI [clock_index]   ; turn on clock
 
 :find_drive
-SET A, 0x4cae 
-SET B, 0x74fa
+SET A, 0x24c5
+SET B, 0x4fd5
 SET C, drive_index
 JSR find_device
 
 IFE [drive_index], 0xffff   ; if we didn't find a drive, skip to main loop
 SET PC, main_loop
 
-; invoke UPDATE_DEVICE_FLAGS on disk to set NON_BLOCKING=1 and MEDIA_STATUS_INTERRUPT=1
-SET A, 3
-SET B, 2
-HWI [drive_index]
-
 ; invoke SET_INTERRUPT_MESSAGE on disk
-SET A, 5
-SET B, 0x4cae 
+SET A, 1
+SET X, 0x24c5 
 HWI [drive_index]
-
-:main_loop
-IFN [clock_index], 0xffff
-JSR draw_clock_ticks
 
 IFN [drive_index], 0xffff
 JSR query_disk_status
 
+:main_loop
+IFN [clock_index], 0xffff
+JSR draw_clock_ticks
 SET PC, main_loop
 
 ; A = device ID 1
@@ -146,18 +138,15 @@ SET PC, POP
 
 
 :query_disk_status
-SET A, 0    ; QUERY_MEDIA_PRESENT
+SET A, 0    ; Poll device (state in B, error in C)
 HWI [drive_index]
-IFE B, 1
-JSR query_media_quality
-IFE B, 0    ; if no media present
-SET [media_status], media_status_none
+JSR update_media_status
 
 IFE [media_status], media_status_available
 JSR test_media
 
 
-; update media status line
+:update_media_status_line
 SET Z, media_line
 ADD Z, 15
 SET I, [media_status]
@@ -179,12 +168,23 @@ JSR draw_line
 SET PC, POP
 
 
+:update_media_status
+IFE B, 0x0000    ; if no media present
+SET [media_status], media_status_none
+IFE B, 0x0003    ; if drive busy
+SET [media_status], media_status_busy
+IFE B, 0x0001    ; STATE_READY
+JSR query_media_quality
+IFE B, 0x0002    ; STATE_READY_WP
+JSR query_media_quality
+
+SET PC, POP
+
+
 :query_media_quality
-SET A, 0xffff    ; QUERY_MEDIA_QUALITY
-HWI [drive_index]
-IFE A, 0    ; ERROR_NONE
+IFE C, 0    ; ERROR_NONE
 SET [media_status], media_status_available
-IFN A, 0    ; some error 
+IFN C, 0    ; some error 
 SET [media_status], media_status_error
 
 SET PC, POP
@@ -193,7 +193,7 @@ SET PC, POP
 :test_media
 IFE [media_test_state], 1 ; bail if we are in progress 
 SET PC, POP
-IFE [media_test_state], 2 ; bail if we are  finished with the test
+IFE [media_test_state], 2 ; bail if we are finished with the test
 SET PC, POP
 
 SET [media_test_state], 1 ; set status to in progress
@@ -202,15 +202,14 @@ SET Y, media_test_pending
 JSR draw_media_test_line
 
 ; read a few sectors from the media
-SET A, 0x10 ; READ_SECTORS
-SET B, 0x10 ; inital sector
-SET C, 16   ; number of sectors
-SET X, 0x2048 ; memory offset to place result into
+SET A, 2 ; Read sector
+SET X, 0x10 ; sector to read
+SET Y, 0x2048 ; memory offset to place result into
 HWI [drive_index]
 SET PC, POP ; return
 
 :interrupt_handler
-IFE A, 0x4cae 
+IFE A, 0x24c5 
 JSR media_interrupt_handler
 RFI A
 
@@ -223,20 +222,24 @@ SET PUSH, X
 SET PUSH, Y
 SET PUSH, Z
 
-SET A, 4; QUERY_INTERRUPT_TYPE
+SET A, 0 ; Poll device
 HWI [drive_index]
-
-IFE B, 1 ;  MEDIA_STATUS
-SET [media_test_state], 0 ; media status changed, reset state
-
-; bail if this is not the read complete message
-IFN B, 2 ; READ_COMPLETE
+JSR update_media_status
+JSR update_media_status_line
+; bail if drive still busy
+IFE B, 0x0003 ; STATE_BUSY
+SET PC, exit_media_interrupt_handler
+IFE B, 0x0000 ; STATE_NO_MEDIA
 SET PC, exit_media_interrupt_handler
 
-IFE A, 0 ; no error
+IFE C, 0 ; no error
+IFG B, 0 ; not STATE_NO_MEDIA (already know it isn't STATE_BUSY)
 SET Y, media_test_success
 
-IFN A, 0 ; error
+IFE Y, media_test_success
+SET [media_test_state], 2
+
+IFN C, 0 ; error
 SET Y, media_test_fail
 
 JSR draw_media_test_line
@@ -383,6 +386,7 @@ DAT 0x8000
 
 :media_status_available DAT "available", 0
 :media_status_none      DAT "none     ", 0
+:media_status_busy      DAT "busy     ", 0
 :media_status_error     DAT "ERROR    ", 0
 :media_status DAT 0xffff
 
