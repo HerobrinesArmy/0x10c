@@ -615,7 +615,8 @@ public class DCPU
   	final VirtualClock clock = (VirtualClock) new VirtualClock().connectTo(cpu);
     final VirtualMonitor display = (VirtualMonitor)new VirtualMonitor().connectTo(cpu);
     final VirtualKeyboard keyboard = (VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);
-    final VirtualFloppyDrive floppyDrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu); 
+    final VirtualFloppyDrive floppyDrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
+    final VirtualSleepChamber sleepChamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
     Thread t = new Thread() {
       public void run() {
         try {
@@ -784,7 +785,7 @@ public class DCPU
     new Assembler(cpu.ram).assemble("testfile.txt");
 //    cpu.load(cpu.ram);
     
-    DCPU.dump(cpu.ram, 0, 1024);
+//    DCPU.dump(cpu.ram, 0, 1024);
     if (args.length == 0) {
       testCpu(cpu.ram);
       return;

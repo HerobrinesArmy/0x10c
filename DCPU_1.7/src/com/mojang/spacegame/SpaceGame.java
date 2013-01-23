@@ -43,6 +43,7 @@ import computer.VirtualClock;
 import computer.VirtualFloppyDrive;
 import computer.VirtualKeyboard;
 import computer.VirtualMonitor;
+import computer.VirtualSleepChamber;
 public class SpaceGame
   implements Runnable
 {
@@ -64,6 +65,7 @@ public class SpaceGame
   private VirtualMonitor vmonitor = (VirtualMonitor) new VirtualMonitor().connectTo(cpu);//this.cpu.ram, 32768);
   private VirtualKeyboard vkeyboard = (VirtualKeyboard) new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);//this.cpu.ram, 36864, new AWTKeyMapping());
   private VirtualFloppyDrive vfloppydrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
+  private VirtualSleepChamber vsleepchamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
 //  {try {
 ////      DCPU.load(cpu.ram);
 //    } catch (Exception e1) {

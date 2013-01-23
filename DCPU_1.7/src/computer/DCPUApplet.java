@@ -7,6 +7,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.net.URL;
 
 public class DCPUApplet extends Applet
   implements Runnable
@@ -33,8 +34,9 @@ public class DCPUApplet extends Applet
     this.keyboard = ((VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu));
     new VirtualClock().connectTo(cpu);
     new VirtualFloppyDrive().connectTo(cpu);
+    new VirtualSleepChamber().connectTo(cpu);
     try {
-    	new Assembler(cpu.ram).assemble("testfile.txt");
+    	new Assembler(cpu.ram).assemble(new URL(getParameter("source")));//getParameter("source"));
 //      DCPU.load(cpu.ram);
     } catch (Exception e1) {
       e1.printStackTrace();
