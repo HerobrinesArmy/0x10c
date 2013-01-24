@@ -1,5 +1,6 @@
 ;Stole this and modified it to use as a testfile
-
+#define psh SET PUSH,
+	
 :preMonitor ; Finding the Screen, and map it to 0x8000
 HWN Z
 :preMonitor_Loop
@@ -96,8 +97,8 @@ SET PC, main_loop
 ; B = device ID 2
 ; C = location to store device index, or 0xffff if not found
 :find_device
-SET PUSH, Y
-SET PUSH, Z
+psh Y
+psh Z
 SET [C], 0xffff
 
 SET Z, discovered_devices
@@ -214,13 +215,13 @@ JSR media_interrupt_handler
 RFI A
 
 :media_interrupt_handler
-SET PUSH, B
-SET PUSH, C
-SET PUSH, I
-SET PUSH, J
-SET PUSH, X
-SET PUSH, Y
-SET PUSH, Z
+psh B
+psh C
+psh I
+psh J
+psh X
+psh Y
+psh Z
 
 SET A, 0 ; Poll device
 HWI [drive_index]

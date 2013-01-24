@@ -28,7 +28,7 @@ public class VirtualClock extends DCPUHardware
     if (++this.intCount >= this.interval) {
       if (this.interruptMessage != 0) this.dcpu.interrupt(this.interruptMessage);
       this.intCount = 0;
-      this.ticks = (char)(this.ticks + '\001');
+      this.ticks++;
     }
   }
 }
