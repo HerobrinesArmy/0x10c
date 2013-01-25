@@ -16,6 +16,9 @@ IFE Z, 0x0000
  SET PC, preMonitor_NotFound
 SUB Z, 0x0001
 SET PC, preMonitor_Loop
+
+.align 50
+
 :preMonitor_NotFound
 SET A, 0xFFFF
 SET B, 0xFFFF

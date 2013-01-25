@@ -30,6 +30,7 @@ public class Assembler
 {
 	private static final Pattern DEFINE_PATTERN = Pattern.compile("\\A\\s*[#\\.]define\\s+(\\w+)\\s(.+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern RESERVE_PATTERN = Pattern.compile("\\A\\s*[#\\.]reserve\\s+(0b[01]+|0x[0-9A-F]+|[0-9]+)\\b", Pattern.CASE_INSENSITIVE);
+	private static final Pattern ALIGN_PATTERN = Pattern.compile("\\A\\s*[#\\.]align\\s+(0b[01]+|0x[0-9A-F]+|[0-9]+)\\b", Pattern.CASE_INSENSITIVE);
   public char[] ram;
   public int pc = 0;
   public Map<Position, String> labelUsages = new HashMap<Position, String>();
@@ -214,14 +215,13 @@ public class Assembler
   }
 
   private void parseLine(String line) {
-  	for (String key : defines.keySet()) {
-			line = line.replaceAll(key, defines.get(key));
-		}
 		Matcher m = null;
 		if ((m=DEFINE_PATTERN.matcher(line)).find()) {
 			defines.put(m.group(1), m.group(2));
 		} else if ((m=RESERVE_PATTERN.matcher(line)).find()) {
 			pc += parseNumber(m.group(1));
+		} else if ((m=ALIGN_PATTERN.matcher(line)).find()) {
+			pc = parseNumber(m.group(1));
 		} else {
 			if (line.length() == 0) return;
 			String[] words = line.split("\\\"");
@@ -357,6 +357,9 @@ public class Assembler
     while ((line = br.readLine()) != null) {
       lines++;
       line = line.trim();
+      for (String key : defines.keySet()) {
+  			line = line.replaceAll(key, defines.get(key));
+  		}
       if (line.startsWith("#include "))
         try {
           include(line.substring("#include ".length()));
@@ -504,6 +507,9 @@ public class Assembler
     while ((line = br.readLine()) != null) {
       lines++;
       line = line.trim();
+      for (String key : defines.keySet()) {
+  			line = line.replaceAll(key, defines.get(key));
+  		}
       if (line.startsWith("#include "))
         try {
           include(new URL(line.substring("#include ".length())));
