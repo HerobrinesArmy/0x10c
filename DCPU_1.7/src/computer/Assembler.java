@@ -16,20 +16,20 @@ import java.util.regex.Pattern;
  * Use at your own risk
  * @author Notch, Herobrine
  *
+ * Rules for defining replacement text with #define:
+ * Line may start with 0-N whitespace characters,
+ * then '#' or '.',
+ * then "define" (any case),
+ * then 1-N whitespace characters,
+ * then the key (1-N characters in the set [A-Za-z_0-9]),
+ * then exactly 1 whitespace character,
+ * and everything after that until the end of the line is the replacement text.
+ * Will only replace text on lines following the definition.
  */
 public class Assembler
 {
-	//Rules for defining replacement text with #define:
-	//Line may start with 0-N whitespace characters,
-	//then '#' or '.',
-	//then "define" (any case),
-	//then 1-N whitespace characters,
-	//then the key (1-N characters in the set [A-Za-z_0-9]),
-	//then exactly 1 whitespace character,
-	//and everything after that until the end of the line is the replacement text.
-	//Will only replace text on lines following the definition.
-	
 	private static final Pattern DEFINE_PATTERN = Pattern.compile("\\A\\s*[#\\.]define\\s+(\\w+)\\s(.+)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern RESERVE_PATTERN = Pattern.compile("\\A\\s*[#\\.]reserve\\s+(0b[01]+|0x[0-9A-F]+|[0-9]+)\\b", Pattern.CASE_INSENSITIVE);
   public char[] ram;
   public int pc = 0;
   public Map<Position, String> labelUsages = new HashMap<Position, String>();
@@ -214,13 +214,15 @@ public class Assembler
   }
 
   private void parseLine(String line) {
-		Matcher m = DEFINE_PATTERN.matcher(line);
-		if (m.find()) {
-			defines.put(m.group(1), m.group(2));	
+  	for (String key : defines.keySet()) {
+			line = line.replaceAll(key, defines.get(key));
+		}
+		Matcher m = null;
+		if ((m=DEFINE_PATTERN.matcher(line)).find()) {
+			defines.put(m.group(1), m.group(2));
+		} else if ((m=RESERVE_PATTERN.matcher(line)).find()) {
+			pc += parseNumber(m.group(1));
 		} else {
-			for (String key : defines.keySet()) {
-				line = line.replaceAll(key, defines.get(key));
-			}
 			if (line.length() == 0) return;
 			String[] words = line.split("\\\"");
 			line = "";

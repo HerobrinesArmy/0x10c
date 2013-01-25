@@ -1,6 +1,10 @@
 ;Stole this and modified it to use as a testfile
 #define psh SET PUSH,
-	
+
+set PC, preMonitor
+
+#reserve 0x3
+
 :preMonitor ; Finding the Screen, and map it to 0x8000
 HWN Z
 :preMonitor_Loop
@@ -92,6 +96,8 @@ JSR query_disk_status
 IFN [clock_index], 0xffff
 JSR draw_clock_ticks
 SET PC, main_loop
+
+.reserve 10
 
 ; A = device ID 1
 ; B = device ID 2
