@@ -8,7 +8,7 @@ import util.IntHashMap;
 public class OpCodes
 {
   private HashMap<String, OpCode> codes = new HashMap<String, OpCode>();
-  private static IntHashMap<OpCode> ids = new IntHashMap<OpCode>();
+  private IntHashMap<OpCode> ids = new IntHashMap<OpCode>();
 
   public static final OpCodes basic = new OpCodes(BasicOp.class);
   public static final OpCodes special = new OpCodes(SpecialOp.class);
