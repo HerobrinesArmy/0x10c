@@ -281,7 +281,7 @@ public class Assembler
         this.currentScope.labelPositions.put(tokens[i].substring(1), new Position(this.currentScope, this.pc));
       } else if (tokens[i].endsWith(":")) {
         this.currentScope.labelPositions.put(tokens[i].substring(0, tokens[i].length()-1), new Position(this.currentScope, this.pc));
-      } else if (tokens[i].equalsIgnoreCase("#macro")) {
+      } else if (tokens[i].equalsIgnoreCase("#macro") || tokens[i].equalsIgnoreCase(".macro")) {
         String title = "";
         while (!tokens[i + 1].equals("{")) {
           i++; String t = tokens[i];
@@ -362,7 +362,7 @@ public class Assembler
       for (String key : defines.keySet()) {
   			line = line.replaceAll(key, defines.get(key));
   		}
-      if (line.startsWith("#include "))
+      if (line.startsWith("#include ") || line.startsWith(".include "))
         try {
           include(line.substring("#include ".length()));
         } catch (Exception e) {
@@ -512,7 +512,7 @@ public class Assembler
       for (String key : defines.keySet()) {
   			line = line.replaceAll(key, defines.get(key));
   		}
-      if (line.startsWith("#include "))
+      if (line.startsWith("#include ") || line.startsWith(".include "))
         try {
           include(new URL(line.substring("#include ".length())));
         } catch (Exception e) {
