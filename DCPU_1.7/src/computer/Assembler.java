@@ -31,6 +31,8 @@ public class Assembler
 	private static final Pattern DEFINE_PATTERN = Pattern.compile("\\A\\s*[#\\.]define\\s+(\\w+)\\s(.+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern RESERVE_PATTERN = Pattern.compile("\\A\\s*[#\\.]reserve\\s+(0b[01]+|0x[0-9A-F]+|[0-9]+)\\b", Pattern.CASE_INSENSITIVE);
 	private static final Pattern ALIGN_PATTERN = Pattern.compile("\\A\\s*[#\\.]align\\s+(0b[01]+|0x[0-9A-F]+|[0-9]+)\\b", Pattern.CASE_INSENSITIVE);
+	private static final Pattern SHORTFORM_PATTERN = Pattern.compile("\\A\\s*[#\\.]shortform\\b", Pattern.CASE_INSENSITIVE);
+	private static final Pattern LONGFORM_PATTERN = Pattern.compile("\\A\\s*[#\\.]longform\\b", Pattern.CASE_INSENSITIVE);
   public char[] ram;
   public int pc = 0;
   public Map<Position, String> labelUsages = new HashMap<Position, String>();
@@ -40,11 +42,11 @@ public class Assembler
   private Map<String, String> defines = new HashMap<String, String>();
   private Macro currentMacro;
   private Scope currentScope = new Scope(null);
+  private boolean forceLongLiterals;
 
   public Assembler(char[] ram) {
     this.ram = ram;
   }
-
   
   private int decodeB(String string)
   {
@@ -63,14 +65,12 @@ public class Assembler
       return 0x1c;
     if (string.toUpperCase().equals("EX"))
       return 0x1d;
-
     
     if (Character.isDigit(string.charAt(0))) {
       int val = parseNumber(string);
       this.ram[this.pc++] = (char)val;
       return 31;
     }
-    
     
     if ((string.startsWith("[")) && (string.endsWith("]")) && (Character.isDigit(string.charAt(1)))) {
       string = string.substring(1, string.length() - 1);
@@ -138,14 +138,14 @@ public class Assembler
     
     if (Character.isDigit(string.charAt(0)) || "-1".equals(string)) {
       int val = parseNumber(string);
-      if (val < 31 || val == 0xFFFF) {
+      if (!forceLongLiterals && (val < 31 || val == 0xFFFF)) {
         return 32 + ((val + 1) % 0x10000);
       }
       this.ram[this.pc++] = (char)val;
       return 31;
     }
     
-    if ((string.startsWith("[")) && (string.endsWith("]")) && (Character.isDigit(string.charAt(1)))) {
+    if (string.startsWith("[") && string.endsWith("]") && Character.isDigit(string.charAt(1))) {
       string = string.substring(1, string.length() - 1);
       if (string.indexOf("+") >= 0) {
         String[] tokens = string.split("\\+");
@@ -158,7 +158,7 @@ public class Assembler
       this.ram[this.pc++] = (char)val;
       return 30;
     }
-    if ((string.startsWith("[")) && (string.endsWith("]"))) {
+    if (string.startsWith("[") && string.endsWith("]")) {
       string = string.substring(1, string.length() - 1);
       if (string.indexOf("+") >= 0) {
         String[] tokens = string.split("\\+");
@@ -222,6 +222,10 @@ public class Assembler
 			pc += parseNumber(m.group(1));
 		} else if ((m=ALIGN_PATTERN.matcher(line)).find()) {
 			pc = parseNumber(m.group(1));
+		} else if ((m=SHORTFORM_PATTERN.matcher(line)).find()) {
+			forceLongLiterals = false;
+		} else if ((m=LONGFORM_PATTERN.matcher(line)).find()) {
+			forceLongLiterals = true;
 		} else {
 			if (line.length() == 0) return;
 			String[] words = line.split("\\\"");
@@ -344,9 +348,7 @@ public class Assembler
     }
   }
 
-  public void include(String file)
-    throws Exception
-  {
+  public void include(String file) throws Exception {
     Scope oldScope = this.currentScope;
     this.currentScope = new Scope(oldScope);
     oldScope.inheritedScopes.add(this.currentScope);
@@ -380,8 +382,7 @@ public class Assembler
     this.currentScope = oldScope;
   }
 
-  public void assemble(String file) throws Exception
-  {
+  public void assemble(String file) throws Exception {
     include(file);
 
     for (Position pos : this.labelUsages.keySet()) {
@@ -401,6 +402,7 @@ public class Assembler
         this.ram[pos.pos] = (char)labelPos.pos;
       }
     }
+    System.out.println(pc);
   }
 
   private class Macro
@@ -493,7 +495,7 @@ public class Assembler
         }
         this.ram[pos.pos] = (char)labelPos.pos;
       }
-    }		
+    }
 	}
 
 

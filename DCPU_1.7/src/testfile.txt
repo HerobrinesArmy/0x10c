@@ -20,11 +20,13 @@ SET PC, preMonitor_Loop
 .align 50
 
 :preMonitor_NotFound
+.longform
 SET A, 0xFFFF
 SET B, 0xFFFF
 SET C, 0xFFFF
 SET PC, preMonitor_NotFound
 :preMonitor_FoundMonitor ; Monitor Found, Initializing it.
+.shortform
 SET A, 0x0000
 SET B, 0x8000
 HWI Z
