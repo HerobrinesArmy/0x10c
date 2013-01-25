@@ -12,7 +12,8 @@ package computer;
  * The M35FD works is asynchronous, and has a raw read/write speed of 30.7kw/s.
  * Track seeking time is about 2.4 ms per track.
  * 
- * TODO: Test this.
+ * TODO: Switch to coarser, 60hz time-keeping. Current time-keeping is a bit flawed.
+ * TODO: Test this more.
  */
 public class VirtualFloppyDrive extends DCPUHardware
 {
@@ -127,7 +128,7 @@ public class VirtualFloppyDrive extends DCPUHardware
 	}
 
 	public void tick60hz() {
-		if ((operation.cycles -= dcpu.cycles) <= 0) {
+		if ((operation.cycles -= 1667) <= 0) {
 			switch (operation.type) {
 	  	case FloppyOperation.READ:
 	  		for (int i = 0; i < 512; i++) {

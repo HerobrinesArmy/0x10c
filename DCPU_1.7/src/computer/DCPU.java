@@ -618,6 +618,7 @@ public class DCPU
     final VirtualFloppyDrive floppyDrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
     floppyDrive.insert(new FloppyDisk());
     final VirtualSleepChamber sleepChamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
+    final VirtualVectorDisplay vectorDisplay = (VirtualVectorDisplay) new VirtualVectorDisplay().connectTo(cpu);
     Thread t = new Thread() {
       public void run() {
         try {

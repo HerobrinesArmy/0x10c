@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-class FloppyDisk {
+public class FloppyDisk {
 		public char[] data = new char[737280];
 
 		private boolean writeProtected;

@@ -35,6 +35,7 @@ public class DCPUApplet extends Applet
     new VirtualClock().connectTo(cpu);
     new VirtualFloppyDrive().connectTo(cpu);
     new VirtualSleepChamber().connectTo(cpu);
+    new VirtualVectorDisplay().connectTo(cpu);
     try {
     	new Assembler(cpu.ram).assemble(new URL(getParameter("source")));//getParameter("source"));
 //      DCPU.load(cpu.ram);

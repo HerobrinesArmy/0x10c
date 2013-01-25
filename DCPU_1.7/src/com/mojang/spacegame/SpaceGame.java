@@ -12,7 +12,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,11 +38,13 @@ import com.mojang.spacegame.renderer.Textures;
 import computer.AWTKeyMapping;
 import computer.Assembler;
 import computer.DCPU;
+import computer.FloppyDisk;
 import computer.VirtualClock;
 import computer.VirtualFloppyDrive;
 import computer.VirtualKeyboard;
 import computer.VirtualMonitor;
 import computer.VirtualSleepChamber;
+import computer.VirtualVectorDisplay;
 public class SpaceGame
   implements Runnable
 {
@@ -64,8 +65,9 @@ public class SpaceGame
   private VirtualClock clock = (VirtualClock) new VirtualClock().connectTo(cpu);
   private VirtualMonitor vmonitor = (VirtualMonitor) new VirtualMonitor().connectTo(cpu);//this.cpu.ram, 32768);
   private VirtualKeyboard vkeyboard = (VirtualKeyboard) new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);//this.cpu.ram, 36864, new AWTKeyMapping());
-  private VirtualFloppyDrive vfloppydrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
+  public VirtualFloppyDrive vfloppydrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
   private VirtualSleepChamber vsleepchamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
+  private VirtualVectorDisplay vvectordisplay = (VirtualVectorDisplay) new VirtualVectorDisplay().connectTo(cpu);
 //  {try {
 ////      DCPU.load(cpu.ram);
 //    } catch (Exception e1) {
@@ -783,9 +785,32 @@ class GameFrame extends JFrame {
 	public class GameCanvas extends AWTGLCanvas { 
 		private SpaceGame game;
 
-		public GameCanvas(SpaceGame game) throws LWJGLException {
+		public GameCanvas(final SpaceGame game) throws LWJGLException {
 			super();
 			this.game = game;
+			addKeyListener(new KeyListener() {
+				
+				@Override
+				public void keyTyped(KeyEvent e) {
+					if (e.getKeyChar() == 'i') {
+						game.vfloppydrive.insert(new FloppyDisk());
+					} else if (e.getKeyChar() == 'e') {
+						game.vfloppydrive.eject();
+					}
+				}
+				
+				@Override
+				public void keyReleased(KeyEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				@Override
+				public void keyPressed(KeyEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
 		}
 
 		@Override
