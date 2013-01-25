@@ -566,7 +566,7 @@ public class DCPU
     }
 
     long ops = 0L;
-    int hz = 100000;
+    int hz = khz * 1000;
     int cyclesPerFrame = hz / 60;
 
     long nsPerFrame = 16666666L;
@@ -688,7 +688,7 @@ public class DCPU
     attachDisplay(cpu);
 
     long ops = 0L;
-    int hz = 100000;
+    int hz = 1000 * khz;
     int cyclesPerFrame = hz / 60;
 
     long nsPerFrame = 16666666L;

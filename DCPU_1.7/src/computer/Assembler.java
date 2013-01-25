@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Highly experimental 1.7 update to Notch's 1.0 assembler
@@ -17,12 +19,24 @@ import java.util.StringTokenizer;
  */
 public class Assembler
 {
+	//Rules for defining replacement text with #define:
+	//Line may start with 0-N whitespace characters,
+	//then '#' or '.',
+	//then "define" (any case),
+	//then 1-N whitespace characters,
+	//then the key (1-N characters in the set [A-Za-z_0-9]),
+	//then exactly 1 whitespace character,
+	//and everything after that until the end of the line is the replacement text.
+	//Will only replace text on lines following the definition.
+	
+	private static final Pattern DEFINE_PATTERN = Pattern.compile("\\A\\s*[#\\.]define\\s+(\\w+)\\s(.+)", Pattern.CASE_INSENSITIVE);
   public char[] ram;
   public int pc = 0;
   public Map<Position, String> labelUsages = new HashMap<Position, String>();
 
   public String registers = "ABCXYZIJ";
   private Map<String, Macro> macros = new HashMap<String, Macro>();
+  private Map<String, String> defines = new HashMap<String, String>();
   private Macro currentMacro;
   private Scope currentScope = new Scope(null);
 
@@ -200,41 +214,49 @@ public class Assembler
   }
 
   private void parseLine(String line) {
-    if (line.length() == 0) return;
-    String[] words = line.split("\\\"");
-    line = "";
-    for (int i = 0; i < words.length; i++) {
-      if (i % 2 == 0) words[i] = words[i].replaceAll("\\{", " \\{ ");
-      if (i % 2 == 0) words[i] = words[i].replaceAll("\\}", " \\} ");
-      line = line + words[i];
-      if (i >= words.length - 1) continue; line = line + "\"";
-    }
-
-    List<String> tokenList = new ArrayList<String>();
-    line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
-    String delims = " \t,";//"\t,";
-    StringTokenizer st = new StringTokenizer(line, delims + "\"[", true);
-    while (st.hasMoreTokens()) {
-      String token = st.nextToken(delims + "\"[");
-      if (token.equalsIgnoreCase("\"")) {
-        token = "\"" + st.nextToken("\"") + "\"";
-        if (st.hasMoreTokens()) st.nextToken("\"");
-      }
-      if (token.equalsIgnoreCase("[")) {
-        token = "[" + st.nextToken("]").replaceAll(" ", "") + "]";
-        if (st.hasMoreTokens()) st.nextToken("]");
-      }
-      if (token.equalsIgnoreCase("PICK")) {
-      	st.nextToken();
-        token = "[SP+" + st.nextToken() + "]";
-      }
-      if ((token.length() > 1) || (delims.indexOf(token) < 0)) {
-        tokenList.add(token);
-      }
-    }
-    String[] tokens = (String[])tokenList.toArray(new String[0]);
-
-    handleTokens(tokens);
+		Matcher m = DEFINE_PATTERN.matcher(line);
+		if (m.find()) {
+			defines.put(m.group(1), m.group(2));	
+		} else {
+			for (String key : defines.keySet()) {
+				line = line.replaceAll(key, defines.get(key));
+			}
+			if (line.length() == 0) return;
+			String[] words = line.split("\\\"");
+			line = "";
+			for (int i = 0; i < words.length; i++) {
+			  if (i % 2 == 0) words[i] = words[i].replaceAll("\\{", " \\{ ");
+			  if (i % 2 == 0) words[i] = words[i].replaceAll("\\}", " \\} ");
+			  line = line + words[i];
+			  if (i >= words.length - 1) continue; line = line + "\"";
+			}
+			
+			List<String> tokenList = new ArrayList<String>();
+			line = line.replace(";", " ;");//TODO FIXME XXX Temp hack
+			String delims = " \t,";//"\t,";
+			StringTokenizer st = new StringTokenizer(line, delims + "\"[", true);
+			while (st.hasMoreTokens()) {
+			  String token = st.nextToken(delims + "\"[");
+			  if (token.equalsIgnoreCase("\"")) {
+			    token = "\"" + st.nextToken("\"") + "\"";
+			    if (st.hasMoreTokens()) st.nextToken("\"");
+			  }
+			  if (token.equalsIgnoreCase("[")) {
+			    token = "[" + st.nextToken("]").replaceAll(" ", "") + "]";
+			    if (st.hasMoreTokens()) st.nextToken("]");
+			  }
+			  if (token.equalsIgnoreCase("PICK")) {
+			  	st.nextToken();
+			    token = "[SP+" + st.nextToken() + "]";
+			  }
+			  if ((token.length() > 1) || (delims.indexOf(token) < 0)) {
+			    tokenList.add(token);
+			  }
+			}
+			String[] tokens = (String[])tokenList.toArray(new String[0]);
+			
+			handleTokens(tokens);
+		}
   }
 
   public void handleTokens(String[] tokens)
