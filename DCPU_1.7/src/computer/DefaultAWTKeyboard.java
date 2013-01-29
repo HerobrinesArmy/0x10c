@@ -1,22 +1,22 @@
 package computer;
 
+import java.awt.KeyEventDispatcher;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 
-public class DefaultAWTKeyboard extends VirtualKeyboard implements KeyListener {
+public class DefaultAWTKeyboard extends VirtualKeyboard implements KeyEventDispatcher {
 	public DefaultAWTKeyboard() {
 		super(new AWTKeyMapping());
 	}
-
-  public void keyPressed(KeyEvent ke) {
-    keyPressed(ke.getKeyCode());
-  }
-
-  public void keyReleased(KeyEvent ke) {
-    keyReleased(ke.getKeyCode());
-  }
-
-  public void keyTyped(KeyEvent ke) {
-    keyTyped(ke.getKeyChar());
-  }
+	
+	@Override
+	public boolean dispatchKeyEvent(KeyEvent e) {
+		if (e.getID() == KeyEvent.KEY_PRESSED) {
+			keyPressed(e.getKeyCode());
+	  } else if (e.getID() == KeyEvent.KEY_RELEASED) {
+	  	keyReleased(e.getKeyCode());
+	  } else if (e.getID() == KeyEvent.KEY_TYPED) {
+	  	keyTyped(e.getKeyChar());
+	  }
+	  return false;
+	}
 }

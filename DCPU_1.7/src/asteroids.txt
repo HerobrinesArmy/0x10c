@@ -1,0 +1,1021 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;		Asteroids
+;				
+;				by @lowey2002
+;
+;
+;  CONTROLS
+;		a - move left
+;		w - move up
+;		d - move right
+;		s - move down
+;		l - rotate clockwise
+;		k - rotate anti-clockwise
+;		space - fire
+;
+;  v20120605
+;
+
+
+jsr detect_hardware
+jsr init_monitor
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   initalize game
+;
+:init_game
+jsr add_bullet_clock
+jsr draw_player
+jsr init_asteroids
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   game input loop
+;
+:input_loop
+jsr read_input
+jsr draw_player
+jsr draw_bullet
+set pc, input_loop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	game tick loop
+;
+;	ticks occur every 1/[bullet_tick_rate] seconds
+;	it moves all the bullets and checks for collisions
+;
+:clock_tick_update
+ife [game_over], 1
+	set pc, game_over_state
+jsr clear_bullet
+jsr update_bullet
+jsr draw_bullet
+jsr draw_player
+jsr draw_all_asteroids
+jsr check_collision
+jsr check_game_over
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	game over  - print message then reset everything to original values
+;
+:game_over_state
+jsr cls
+set a, game_over_message
+set b, 0
+jsr print_message
+set a, play_again_message
+set b, 0x20
+jsr print_message
+
+set [player], 0x7040
+set [player_x], 0xf
+set [player_y], 5
+
+
+:game_over_wait
+set a, 1
+hwi [keyboard]
+ife c, 0
+	set pc, game_over_wait
+jsr cls
+
+set [game_over], 0
+set pc, init_game
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   create the inital asteroids
+;
+:init_asteroids
+set j, asteroid_sprite
+set a, 3  ;direction
+set b, 1  ;x
+set c, 5  ;y
+set i, j ;memory
+jsr create_sprite
+
+add j, 1
+set a, 5
+set b, 8
+set c, 3
+set i, j
+jsr create_sprite
+
+add j, 1
+set a, 7
+set b, 2
+set c, 11
+set i, j
+jsr create_sprite
+
+add j, 1
+set a, 5
+set b, 5
+set c, 5
+set i, j
+jsr create_sprite
+
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   draw all the asteroids
+;
+;	asteroid ticks occur every 5th clock tick (1/5 the bullet speed)
+;
+:draw_all_asteroids
+add [asteroid_tick_counter], 1
+ifn [asteroid_tick_counter], 5
+	set pc, pop
+
+set x, 0xFFFF
+set j, asteroid_sprite
+sub j, 1
+
+; 	loop through the array of asteroids -> clear, move then draw
+:asteroid_tick_update
+add x, 1
+ife x, [max_asteroid_count] ;end of array
+	set pc, end_asteroid_tick_update 
+
+add j, 1
+
+ife [j], 0  ;empty value at this index
+	set pc, asteroid_tick_update
+	
+set a, j
+jsr clear_sprite
+set a, j
+jsr update_sprite
+set a, j
+set i, asteroid
+jsr draw_sprite
+set pc, asteroid_tick_update
+
+:end_asteroid_tick_update
+ifn [j], 0
+	set pc, asteroid_tick_update
+set [asteroid_tick_counter], 0 ;reset counter
+set pc, pop
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	detect win condition
+;
+:check_game_over
+set a, asteroid_sprite
+ifn [a], 0  ;0
+	set pc, pop
+add a, 1
+ifn [a], 0  ;1
+	set pc, pop
+add a, 1
+ifn [a], 0  ;2
+	set pc, pop
+add a, 1
+ifn [a], 0  ;3
+	set pc, pop
+add a, 1
+ifn [a], 0  ;4
+	set pc, pop
+add a, 1
+ifn [a], 0  ;5
+	set pc, pop
+add a, 1
+ifn [a], 0  ;6
+	set pc, pop
+add a, 1
+ifn [a], 0  ;7
+	set pc, pop
+;all asteroids gone
+set [game_over], 1
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	check if the asteroid collides with the bullet or the player
+;
+:check_collision
+;ife [bullet_0], 0
+;	set pc, pop
+set x, 0xFFFF
+set y, asteroid_sprite
+sub y, 1
+set a, [bullet_0]
+set b, [bullet_0]
+shr a, 8 ;bullet x
+shr b, 4
+and b, 0x000F ;bullet y
+
+:check_collision_loop
+add y, 1
+add x, 1
+ife x, [max_asteroid_count]
+	set pc, pop ;end of array
+set i, [y]
+ife i, 0
+	set pc, check_collision_loop ;no asteroid at this index
+shr i, 8 ;asteroid x
+set j, [y]
+shr j, 4
+and j, 0x000F ;asteroid y
+ife a, i
+	ife b, j 
+		set pc, bullet_collision_occured
+		
+ife i, [player_x]
+	ife j, [player_y]
+		set pc, player_collision_occured
+		
+set pc, check_collision_loop
+
+:bullet_collision_occured ;remove asteroid at y and the bullet
+set push, a
+set push, y
+set a, [y]
+jsr clear_sprite
+jsr clear_bullet
+set [bullet_0], 0
+;jsr split_asteroid
+set [y], 0
+set y, pop
+set a, pop
+
+set pc, pop
+
+:player_collision_occured
+set i, 0
+set j, 0
+:player_explode_loop
+sub [player], 1
+xor [player], 0xDE00
+add i, 1
+jsr draw_player
+ife [i], 0x80
+	add pc, 1
+set pc, player_explode_loop
+set [game_over], 1
+set pc, pop
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	draw the player
+;
+:draw_player
+set a, player
+set b, [player_x]
+set c, [player_y]
+jsr print_pos
+
+ife [direction], 0
+	set pc, draw_N
+ife [direction], 1
+	set pc, draw_NW
+ife [direction], 2
+	set pc, draw_W
+ife [direction], 3
+	set pc, draw_SW
+ife [direction], 4
+	set pc, draw_S
+ife [direction], 5
+	set pc, draw_SE
+ife [direction], 6
+	set pc, draw_E
+ife [direction], 7
+	set pc, draw_NE
+	
+:draw_N
+set a, vertical
+set b, [player_x]
+set c, [player_y]
+sub c, 1
+jsr print_pos
+set pc, pop
+
+:draw_NW
+set a, right
+set b, [player_x]
+add b, 1
+set c, [player_y]
+sub c, 1
+jsr print_pos
+set pc, pop
+
+:draw_W
+set a, horizontal
+set b, [player_x]
+add b, 1
+set c, [player_y]
+jsr print_pos
+set pc, pop
+
+:draw_SW
+set a, left
+set b, [player_x]
+add b, 1
+set c, [player_y]
+add c, 1
+jsr print_pos
+set pc, pop
+
+:draw_S
+set c, 0  
+set a, vertical
+set b, [player_x]
+add c, [player_y]   ; very strange bug here - it set c to (and c, 0xA0) for no particular reason. set c, 0 fixed it (for no particular reason) WTH!?
+add c, 1
+jsr print_pos
+set pc, pop
+
+:draw_SE
+set a, right
+set b, [player_x]
+sub b, 1
+set c, [player_y]
+add c, 1
+jsr print_pos
+set pc, pop
+
+:draw_E
+set a, horizontal
+set b, [player_x]
+sub b, 1
+set c, [player_y]
+jsr print_pos
+set pc, pop
+
+:draw_NE
+set a, left
+set b, [player_x]
+sub b, 1
+set c, [player_y]
+sub c, 1
+jsr print_pos
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   clear the player from screen memory
+;
+:clear_player
+set a, [player_x]
+set b, [player_y]
+mul b, 0x20
+add a, b
+add a, 0x8000
+set [a], 0
+add a, 1
+set [a], 0
+sub a, 2
+set [a], 0
+sub a, 0x20
+set [a], 0
+add a, 1
+set [a], 0
+add a, 1
+set [a], 0
+add a, 0x40
+set [a], 0
+sub a, 1
+set [a], 0
+sub a, 1
+set [a], 0
+sub a, 1
+set [a], 0
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	read user input
+;
+:read_input
+set a, 1
+set b, [keyboard]
+hwi [keyboard]
+ife c, 0
+	set pc, read_input
+ife c, 0x64
+	set pc, move_right
+ife c, 0x77
+	set pc, move_up
+ife c, 0x73
+	set pc, move_down
+ife c, 0x61
+	set pc, move_left
+ife c, 0x6C
+	set pc, rotate_right
+ife c, 0x6B
+	set pc, rotate_left
+ife c, 0x20
+	set pc, fire
+set pc, read_input
+	
+;;  arrow keys are not implemented on these emulators
+;ife c, 0x83
+;	set pc, rotate_right
+;ife c, 0x82
+;	set pc, rotate_left
+;set pc, pop
+
+
+:move_left
+jsr clear_player
+sub [player_x], 1
+set pc, pop
+
+:move_right
+jsr clear_player
+add [player_x], 1
+set pc, pop
+
+:move_down
+jsr clear_player
+add [player_y], 1
+set pc, pop
+
+:move_up
+jsr clear_player
+sub [player_y], 1
+set pc, pop
+
+:rotate_right
+jsr clear_player
+add [direction], 1
+ife [direction], 8
+	set [direction], 0
+set pc, pop
+
+:rotate_left
+jsr clear_player
+sub [direction], 1
+ife [direction], 0xFFFF
+	set [direction], 7
+set pc, pop
+
+:fire
+jsr clear_bullet
+ifn [bullet_0], 0
+	set [bullet_0], 0
+set a, [player_x]
+set b, [player_y]
+set c, [direction]
+jsr create_bullet
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   create a bullet at these co-ordinates
+;		A - x pos
+;		B - y pos
+;		C - direction
+;
+; bullets occupy a single word in memory like this:
+;
+; 0000 0000 0000 0000
+; |-------| |--| |--|
+;     x       y   direction
+:create_bullet
+shl a, 8
+shl b, 4
+bor a, b
+bor a, c
+ife [bullet_0], 0
+	set [bullet_0], a
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   clear the bullet's current screen location
+;
+:clear_bullet
+set a, [bullet_0]
+set b, [bullet_0]
+shr a, 8  ;x
+shr b, 4
+and b, 0x000F ;y
+mul b, 0x20
+add a, b
+add a, 0x8000
+set [a], 0
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	draw bullets
+; 
+:draw_bullet
+ife [bullet_0], 0
+	set pc, pop
+set b, [bullet_0]
+set c, [bullet_0]
+and b, 0xFF00
+shr b, 8
+and c, 0x00F0
+shr c, 4
+set a, bullet
+jsr print_pos
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	update bullets position
+;
+:update_bullet
+ife [bullet_0], 0
+	set pc, pop
+set a, [bullet_0]
+and a, 0x000F
+set b, [bullet_0]
+set c, [bullet_0]
+and b, 0xFF00  
+shr b, 8  ;x
+and c, 0x00F0
+shr c, 4  ;y
+
+;remove the bullet when it goes offscreen
+ife b, 0
+	set pc, remove_bullet
+ife b, 32
+	set pc, remove_bullet
+ife c, 0
+	set pc, remove_bullet
+ife c, 12
+	set pc, remove_bullet
+
+ife a, 0
+	set pc, move_bullet_N
+ife a, 1
+	set pc, move_bullet_NW
+ife a, 2
+	set pc, move_bullet_W
+ife a, 3
+	set pc, move_bullet_SW
+ife a, 4
+	set pc, move_bullet_S
+ife a, 5
+	set pc, move_bullet_SE
+ife a, 6
+	set pc, move_bullet_E
+ife a, 7
+	set pc, move_bullet_NE
+
+:remove_bullet
+set [bullet_0], 0
+set pc, pop
+
+:move_bullet_N
+sub c, 1
+set pc, end_move_bullet
+
+:move_bullet_NW
+sub c, 1
+add b, 1
+set pc, end_move_bullet
+
+:move_bullet_W
+add b, 1
+set pc, end_move_bullet
+
+:move_bullet_SW
+add b, 1
+add c, 1
+set pc, end_move_bullet
+
+:move_bullet_S
+add c, 1
+set pc, end_move_bullet
+
+:move_bullet_SE
+add c, 1
+sub b, 1
+set pc, end_move_bullet
+
+:move_bullet_E
+sub b, 1
+set pc, end_move_bullet
+
+:move_bullet_NE
+sub c, 1
+sub b, 1
+set pc, end_move_bullet
+
+
+:end_move_bullet
+shl b, 8
+shl c, 4
+bor a, b
+bor a, c
+set [bullet_0], a
+set pc, pop
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	sprite constructor
+;		A - direction
+;		B - x co-ordinate
+;		C - y co-ordinate
+;		I - pointer to memory location
+:create_sprite
+shl b, 8
+shl c, 4
+bor a, b
+bor a, c
+set [i], a
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	draw the sprite
+;		A - pointer to memory location
+;		I - pointer to graphic
+;
+:draw_sprite
+set b, [a]
+set c, [a]
+and b, 0xFF00
+shr b, 8
+and c, 0x00F0
+shr c, 4
+set a, i
+jsr print_pos
+set pc, pop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   clear the sprite's current screen location
+;		A - pointer to memory address
+;
+:clear_sprite
+set i, a
+set a, [i]
+set b, [i]
+shr a, 8  ;x
+shr b, 4
+and b, 0x000F ;y
+mul b, 0x20
+add a, b
+add a, 0x8000
+set [a], 0
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	update the sprite
+;		A - pointer to memory location
+;
+:update_sprite
+set b, [a] ;x
+set c, [a] ;y
+set i, [a] ;direction
+and b, 0xFF00
+shr b, 8
+and c, 0x00F0
+shr c, 4
+and i, 0x000F
+ife i, 0
+	set pc, move_sprite_N
+ife i, 1
+	set pc, move_sprite_NW
+ife i, 2
+	set pc, move_sprite_W
+ife i, 3
+	set pc, move_sprite_SW
+ife i, 4
+	set pc, move_sprite_S
+ife i, 5
+	set pc, move_sprite_SE
+ife i, 6
+	set pc, move_sprite_E
+ife i, 7
+	set pc, move_sprite_NE
+	
+
+:move_sprite_N
+sub c, 1
+set pc, end_sprite_move
+
+:move_sprite_NW
+sub c, 1
+add b, 1
+set pc, end_sprite_move
+
+:move_sprite_W
+add b, 1
+set pc, end_sprite_move
+
+:move_sprite_SW
+add b, 1
+add c, 1
+set pc, end_sprite_move
+
+:move_sprite_S
+add c, 1
+set pc, end_sprite_move
+
+:move_sprite_SE
+add c, 1
+sub b, 1
+set pc, end_sprite_move
+
+:move_sprite_E
+sub b, 1
+set pc, end_sprite_move
+
+:move_sprite_NE
+sub c, 1
+sub b, 1
+set pc, end_sprite_move
+
+:end_sprite_move
+ife c, 0
+	set c, 12
+ifg c, 12
+	set c, 0
+ife b, 0
+	set b, 32
+ifg b, 32
+	set b, 0
+	
+shl b, 8
+shl c, 4
+bor i, b
+bor i, c
+set [a], i
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	find the devices
+;
+:detect_hardware
+set j, 0xFFFF
+hwn i
+:hwloop
+add j, 1
+hwq j
+ife j, i
+   set pc, pop
+ife a, 0xf615
+    ife b, 0x7349
+        set [monitor], j
+ife a, 0x7406
+    ife b, 0x30cf
+        set [keyboard], j
+ife a, 0xb402
+    ife b, 0x12d0
+        set [clock], j
+set pc, hwloop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	start the monitor
+;
+:init_monitor
+set a, 0
+set b, 0x8000
+hwi [monitor]
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;  create the bullet clock interrupt
+;
+:add_bullet_clock
+set a, 0
+set b, [bullet_tick_rate]
+hwi [clock]    ; set clock interrupt to once per second
+set a, 2
+set b, [bullet_clock_interrupt_message]
+hwi [clock]  ; set the interrupt message
+ias bullet_clock_interrupt_handler  ; set the interrupt handler
+set pc, pop
+ 
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;  handle for bullet clock interrupt
+;
+:bullet_clock_interrupt_handler
+ifn a, [bullet_clock_interrupt_message]
+    rfi 0
+ife [game_over], 1
+	set pc, remove_clock_interrupt
+jsr clock_tick_update
+rfi 0
+
+:remove_clock_interrupt
+set a, 0
+set b, 0
+hwi [clock]
+iaq 0
+set pc, game_over_state
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	print string at location (b, c)
+;		A - pointer to message
+;		B - row
+;		C - column
+:print_pos
+mul c, 0x20
+add b, c
+jsr print
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	print character
+;      A - pointer to character
+;      B - offset
+;
+:print
+set push, i
+set push, j 
+set i, 0x8000
+add i, b
+set j, a
+:print_loop
+set [i], [j]
+add i, 1
+add j, 1
+;ifn [j], 0
+;	set pc, print_loop
+set j, pop
+set i, pop
+set pc, pop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	print a string
+;      A - pointer to string
+;      B - offset
+;
+:print_message
+set push, i
+set push, j 
+set i, 0x8000
+add i, b
+set j, a
+:print_message_loop
+set [i], [j]	;i had problems with STI on some emulators, which is why I do it like this
+bor [i], 0x7000
+add i, 1
+add j, 1
+ifn [j], 0
+	set pc, print_message_loop
+set j, pop
+set i, pop
+set pc, pop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   clear the screen
+;
+:cls
+set push, i
+set i, 0x8000
+:cls_loop
+set [i], 0
+add i, 1
+ifn i, 0x8180
+   set pc, cls_loop
+set i, pop
+set pc, pop
+
+
+
+:player_x
+DAT 0x000F
+
+:player_y
+DAT 0x0005
+
+:direction
+DAT 0
+; 0 = north
+; 1 = north-west
+; 2 = west
+; 3 = south-west
+; 4 = south
+; 5 = south-east
+; 6 = east
+; 7 = north-east
+
+:bullet_0
+DAT 0
+
+; sprites
+:asteroid_sprite
+DAT 0, 0, 0, 0 ,0, 0, 0, 0
+
+:max_asteroid_count
+DAT 7
+
+:bullet_sprite
+DAT 0, 0, 0
+
+:max_bullet_count
+DAT 3
+
+
+; sprite characters
+:player
+DAT 0x7040, 0
+
+:asteroid
+DAT 0x782B, 0
+
+:bullet
+DAT 0x402A, 0
+
+:vertical
+DAT 0x707C, 0
+
+:horizontal
+DAT 0x702D, 0
+
+:right
+DAT 0x702F, 0
+
+:left
+DAT 0x705C, 0
+
+;messages
+:welcome_string_1
+DAT "Asteroids v0.1", 0
+:welcome_string_2
+DAT "by @lowey2002", 0
+:welcome_string_3
+DAT "a w s d   MOVE", 0
+:welcome_string_4
+DAT "k         ROTATE ANTI CLOCKWISE", 0
+:welcome_string_5
+DAT "l         ROTATE CLOCKWISE", 0
+
+:game_over
+DAT 0
+
+:game_over_message
+DAT "Game Over", 0
+
+:play_again_message
+DAT "press [SPACE] to play again", 0
+
+:bullet_clock_interrupt_message
+DAT 2
+
+:asteroid_tick_counter
+DAT 0
+
+:bullet_tick_rate
+DAT 0x7
+
+:keyboard_interrupt_message
+DAT 1
+
+:wait_return_address
+DAT 0
+
+:keyboard
+DAT 0
+ 
+:monitor
+DAT 0
+ 
+:clock
+DAT 0

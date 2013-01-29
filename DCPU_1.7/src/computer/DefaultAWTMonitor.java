@@ -31,14 +31,18 @@ public class DefaultAWTMonitor extends VirtualMonitor {
           	if (canvas.isDisplayable()) {
 	            render();
 	            Graphics2D g = (Graphics2D) img2.getGraphics();
-	            g.setColor(new Color(pixels[0x3000]));
-	            g.fillRect(0, 0, 160, 128);
-	            g.drawImage(img, 16, 16, 128, 128, null);
-	            g.dispose();
+	            if (g != null) {
+	            	g.setColor(new Color(pixels[0x3000]));
+	            	g.fillRect(0, 0, 160, 128);
+	            	g.drawImage(img, 16, 16, 128, 128, null);
+	            	g.dispose();
+	            }
 	
 	            g = (Graphics2D) canvas.getGraphics();
-	            g.drawImage(img2, 0, 0, 160 * SCALE, 128 * SCALE, null);
-	            g.dispose();
+	            if (g != null) {
+	            	g.drawImage(img2, 0, 0, 160 * SCALE, 128 * SCALE, null);
+	            	g.dispose();
+	            }
           	}
             Thread.sleep(1L);
           }

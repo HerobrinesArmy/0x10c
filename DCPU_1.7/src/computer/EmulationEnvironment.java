@@ -1,6 +1,7 @@
 package computer;
 
 import java.awt.FileDialog;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -101,9 +102,9 @@ public class EmulationEnvironment {
     		boolean selected = e.getStateChange() == ItemEvent.SELECTED;
     		if (selected) {
     			keyboard = (DefaultAWTKeyboard) new DefaultAWTKeyboard().connectTo(dcpu);
-    			frame.addKeyListener(keyboard);
+    			KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(keyboard);
     		} else {
-    			frame.removeKeyListener(keyboard);
+    			KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(keyboard);
     			keyboard.disconnect();
     			keyboard = null;
     		}

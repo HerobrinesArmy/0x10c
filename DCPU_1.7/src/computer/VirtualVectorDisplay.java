@@ -58,11 +58,11 @@ public class VirtualVectorDisplay extends DCPUHardware
     	dcpu.registers[2] = broken ? ERROR_BROKEN : ERROR_NONE;
     	break;
     case BEHAVIOR_MAP_REGION:
-    	mapStart = dcpu.registers[5];
-    	mapLength = dcpu.registers[6];
+    	mapStart = dcpu.registers[3];
+    	mapLength = dcpu.registers[4];
     	break;
     case BEHAVIOR_ROTATE_DEVICE:
-    	targetDelta = (dcpu.registers[5] % 360) - angle;
+    	targetDelta = (dcpu.registers[3] % 360) - angle;
     	if (targetDelta > 180) {
     		targetDelta -= 360;
     	} else if (targetDelta < -180) {
@@ -103,6 +103,7 @@ public class VirtualVectorDisplay extends DCPUHardware
 				vertices.add(vertex);
 			}
 		}
+//		System.out.println("Vertices: " + vertices.size() + ", Angle: " + angle + ", Target Delta: " + targetDelta);
   }
 	
 	public class Vertex {

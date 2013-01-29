@@ -35,6 +35,7 @@ public class DCPU
   char[] interrupts = new char[256];
   int ip;
   int iwp;
+	public boolean disassemble = DISASSEMBLE;
 
   public int getAddrB(int type)
   {
@@ -205,10 +206,13 @@ public class DCPU
   public void set(int addr, char val) {
     if (addr < 65536)
       ram[addr & 0xFFFF] = val;
-    else if (addr < 65544)
+    else if (addr < 65544) {
+//    	if (disassemble)
+//    	{
+//    		System.out.println("register[" + (int)(addr & 0x7) + "] = " + (int)val);
+//    	}
       registers[addr & 0x7] = val;
-    else if (addr < 131072)
-    {
+    } else if (addr < 131072) {
       if (addr == 65544)
         sp = val;
       else if (addr == 65545)
@@ -246,7 +250,7 @@ public class DCPU
   public void tick() {
     cycles += 1;
 
-    if (DISASSEMBLE)
+    if (disassemble)
     {
     	System.out.println((pc < 0x1000 ? "0" : "") + (pc < 0x100 ? "0" : "") + Integer.toHexString(pc) + ": " + disassemble(ram, pc));
     }
@@ -329,8 +333,8 @@ public class DCPU
         	cycles += 2;
         	//disables interrupt queueing, pops A from the stack, then pops PC from the stack
         	queueingEnabled = false;
-        	ram[++sp & 0xFFFF] = registers[0];
-	        ram[++sp & 0xFFFF] = pc;
+        	registers[0] = ram[++sp & 0xFFFF];
+	        pc = ram[++sp & 0xFFFF];
         	break;
         case 12: //IAQ TODO: Verify implementation
         	cycles += 1;

@@ -1,0 +1,42 @@
+jsr get_sped
+jsr map_sped
+jsr rotate_sped
+jsr end
+
+:get_sped
+hwn i
+:get_sped_loop
+sub i, 1
+hwq i
+ifn b, 0x42ba
+set pc, get_sped_loop
+set [sped], i
+set pc, pop
+:sped dat 0
+
+:map_sped
+set a, 1
+set x, [sped_memory]
+set y, 8
+hwi [sped]
+set pc, pop
+:sped_memory dat 0x1000
+
+:rotate_sped
+set a, 2
+set x, 180
+hwi [sped]
+set pc, pop
+
+:end
+set pc, end
+
+.align 0x1000
+dat 0x0000, 0x0000
+dat 0x00ff, 0x0100
+dat 0xff00, 0x0200
+dat 0x0000, 0x03ff
+dat 0xffff, 0x0400
+dat 0xffff, 0x05ff
+dat 0xff00, 0x06ff
+dat 0x00ff, 0x07ff
