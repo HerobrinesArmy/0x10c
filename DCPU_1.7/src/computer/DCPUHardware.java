@@ -27,6 +27,12 @@ public class DCPUHardware
     dcpu.hardware.add(this);
     return this;
   }
+  
+  public DCPUHardware disconnect() {
+    dcpu.hardware.remove(this);
+    dcpu = null;
+    return this;
+  }
 
   public void query() {
     this.dcpu.registers[0] = (char)(this.type & 0xFFFF);
@@ -41,6 +47,12 @@ public class DCPUHardware
 
   public void tick60hz() {
   }
+
+	public void powerOff() {
+	}
+	
+	public void powerOn() {
+	}
 
   public static void main(String[] args) throws Exception {
     System.out.println("0x" + Integer.toHexString(new Random().nextInt()));

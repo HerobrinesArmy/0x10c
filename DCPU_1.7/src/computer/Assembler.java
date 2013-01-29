@@ -1,6 +1,8 @@
 package computer;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
@@ -348,12 +350,12 @@ public class Assembler
     }
   }
 
-  public void include(String file) throws Exception {
+  public void include(String resourceFile) throws Exception {
     Scope oldScope = this.currentScope;
     this.currentScope = new Scope(oldScope);
     oldScope.inheritedScopes.add(this.currentScope);
-    String fileName = file;
-    BufferedReader br = new BufferedReader(new InputStreamReader(Assembler.class.getResourceAsStream("/" + file)));
+    String fileName = resourceFile;
+    BufferedReader br = new BufferedReader(new InputStreamReader(Assembler.class.getResourceAsStream("/" + resourceFile)));
     String line = "";
     int lines = 0;
     while ((line = br.readLine()) != null) {
@@ -381,7 +383,63 @@ public class Assembler
     br.close();
     this.currentScope = oldScope;
   }
+  
+  public void include(File file) throws Exception {
+    Scope oldScope = this.currentScope;
+    this.currentScope = new Scope(oldScope);
+    oldScope.inheritedScopes.add(this.currentScope);
+    BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+    String line = "";
+    int lines = 0;
+    while ((line = br.readLine()) != null) {
+      lines++;
+      line = line.trim();
+      for (String key : defines.keySet()) {
+  			line = line.replaceAll(key, defines.get(key));
+  		}
+      if (line.startsWith("#include ") || line.startsWith(".include "))
+        try {
+          include(line.substring("#include ".length()));
+        } catch (Exception e) {
+          System.out.println("[" + file.getName() + ":" + lines + "] Failed to include file: " + line.trim());
+          e.printStackTrace();
+        }
+      else {
+        try {
+          parseLine(line);
+        } catch (Exception e) {
+          System.out.println("[" + file.getName() + ":" + lines + "] Failed to parse line: " + line.trim());
+          e.printStackTrace();
+        }
+      }
+    }
+    br.close();
+    this.currentScope = oldScope;
+  }
 
+  public void assemble(File file) throws Exception {
+    include(file);
+
+    for (Position pos : this.labelUsages.keySet()) {
+      String label = (String)this.labelUsages.get(pos);
+      if (label.startsWith("PC+")) {
+        int toSkip = Integer.parseInt(label.substring(3));
+        int pp = pos.pos - 1;
+        for (int i = 0; i <= toSkip; i++) {
+          pp += DCPU.getInstructionLength(this.ram[pp]);
+        }
+        this.ram[pos.pos] = (char)pp;
+      } else {
+        Position labelPos = pos.scope.findLabel(label);
+        if (labelPos == null) {
+          throw new IllegalArgumentException("Undefined label " + label);
+        }
+        this.ram[pos.pos] = (char)labelPos.pos;
+      }
+    }
+    System.out.println(pc);
+  }
+  
   public void assemble(String file) throws Exception {
     include(file);
 

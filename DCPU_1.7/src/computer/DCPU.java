@@ -4,8 +4,10 @@ import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.DataInputStream;
@@ -13,6 +15,7 @@ import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.swing.JFrame;
 
@@ -33,14 +36,14 @@ public class DCPU
   public int cycles;
   public ArrayList<DCPUHardware> hardware = new ArrayList<DCPUHardware>();
 
-  private static volatile boolean stop = false;
-  private static final int khz = 100;
-  private boolean isSkipping = false;
-  private boolean isOnFire = false;
-  private boolean queueingEnabled = false; //TODO: Verify implementation
-  private char[] interrupts = new char[256];
-  private int ip;
-  private int iwp;
+  protected static volatile boolean stop = false;
+  protected static final int khz = 100;
+  boolean isSkipping = false;
+  boolean isOnFire = false;
+  boolean queueingEnabled = false; //TODO: Verify implementation
+  char[] interrupts = new char[256];
+  int ip;
+  int iwp;
 
   public int getAddrB(int type)
   {
@@ -259,11 +262,12 @@ public class DCPU
     
     if (isOnFire) {
 //      cycles += 10; //Disabled to match speed of crashing seen in livestreams
-      int pos = (int)(Math.random() * 65536) & 0xFFFF;
-      int val = (int)(Math.random() * 65536) & 0xFFFF;
-      int len = (int)(1 / (Math.random() + 0.001)) - 80;
+      int pos = ThreadLocalRandom.current().nextInt();//65536);//(int)(Math.random() * 65536) & 0xFFFF;
+      char val = (char) (pos >> 16);//(char) ThreadLocalRandom.current().nextInt(65536);///(int)(Math.random() * 65536) & 0xFFFF;
+//      pos &= 0xFFFF;
+      int len = (int)(1 / (ThreadLocalRandom.current().nextFloat() + 0.001f)) - 80;
       for (int i = 0; i < len; i++) {
-        ram[pos + i & 0xFFFF] = (char)val;
+        ram[(pos + i) & 0xFFFF] = val;
       }
     }
 
@@ -525,7 +529,7 @@ public class DCPU
   public void interrupt(char a)
   {
     interrupts[iwp = iwp + 1 & 0xFF] = a;
-    if (iwp == ip) isOnFire = true; 
+    if (iwp == ip) isOnFire = true;
   }
 
   private String disassemble(char[] ram, char pcc)
@@ -610,72 +614,37 @@ public class DCPU
       ((DCPUHardware)hardware.get(i)).tick60hz();
   }
 
-  private static void attachDisplay(DCPU cpu)
+  private static void attachDisplay(final DCPU cpu)
   {
+  	final DefaultMonitorCanvas canvas = new DefaultMonitorCanvas();
   	final VirtualClock clock = (VirtualClock) new VirtualClock().connectTo(cpu);
-    final VirtualMonitor display = (VirtualMonitor)new VirtualMonitor().connectTo(cpu);
-    final VirtualKeyboard keyboard = (VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);
+//    final VirtualMonitor display = (VirtualMonitor)new VirtualMonitor().connectTo(cpu);
+//    final VirtualKeyboard keyboard = (VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);
     final VirtualFloppyDrive floppyDrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
     floppyDrive.insert(new FloppyDisk());
     final VirtualSleepChamber sleepChamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
     final VirtualVectorDisplay vectorDisplay = (VirtualVectorDisplay) new VirtualVectorDisplay().connectTo(cpu);
-    Thread t = new Thread() {
-      public void run() {
-        try {
-          int SCALE = 3;
-          JFrame frame = new JFrame();
-
-          Canvas canvas = new Canvas();
-          canvas.setPreferredSize(new Dimension(160 * SCALE, 128 * SCALE));
-          canvas.setMinimumSize(new Dimension(160 * SCALE, 128 * SCALE));
-          canvas.setMaximumSize(new Dimension(160 * SCALE, 128 * SCALE));
-          canvas.setFocusable(true);
-          canvas.addKeyListener(new KeyListener() {
-            public void keyPressed(KeyEvent ke) {
-              keyboard.keyPressed(ke.getKeyCode());
-            }
-
-            public void keyReleased(KeyEvent ke) {
-              keyboard.keyReleased(ke.getKeyCode());
-            }
-
-            public void keyTyped(KeyEvent ke) {
-              keyboard.keyTyped(ke.getKeyChar());
-            }
-          });
-          frame.add(canvas);
-          frame.pack();
-          frame.setLocationRelativeTo(null);
-          frame.setResizable(false);
-          frame.setDefaultCloseOperation(3);
-          frame.setVisible(true);
-
-          BufferedImage img2 = new BufferedImage(160, 128, 2);
-          BufferedImage img = new BufferedImage(128, 128, 2);
-          int[] pixels = ((DataBufferInt)img.getRaster().getDataBuffer()).getData();
-          display.setPixels(pixels);
-
-          canvas.requestFocus();
-          while (true)
-          {
-            display.render();
-            Graphics g = img2.getGraphics();
-            g.setColor(new Color(pixels[12288]));
-            g.fillRect(0, 0, 160, 128);
-            g.drawImage(img, 16, 16, 128, 128, null);
-            g.dispose();
-
-            g = canvas.getGraphics();
-            g.drawImage(img2, 0, 0, 160 * SCALE, 128 * SCALE, null);
-            g.dispose();
-            Thread.sleep(1L);
-          }
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-    };
-    t.start();
+    canvas.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+			}
+			@Override
+			public void keyReleased(KeyEvent e) {
+			}
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_0) {
+      		canvas.display.connectTo(cpu);
+      	}
+			}
+		});
+    JFrame frame = new JFrame();
+    frame.add(canvas);
+    frame.pack();
+    frame.setLocationRelativeTo(null);
+    frame.setResizable(false);
+    frame.setDefaultCloseOperation(3);
+    frame.setVisible(true);
   }
 
   private static void testCpu(char[] ram)
@@ -689,7 +658,7 @@ public class DCPU
 
     long ops = 0L;
     int hz = 1000 * khz;
-    int cyclesPerFrame = hz / 60;
+    int cyclesPerFrame = hz / 60 + 1;
 
     long nsPerFrame = 16666666L;
     long nextTime = System.nanoTime();
@@ -784,7 +753,7 @@ public class DCPU
 
   public static void main(String[] args) throws Exception {
     final DCPU cpu = new DCPU();
-    new Assembler(cpu.ram).assemble("testfile.txt");
+    new Assembler(cpu.ram).assemble("crashtest.txt");
 //    cpu.load(cpu.ram);
     
 //    DCPU.dump(cpu.ram, 0, 1024);

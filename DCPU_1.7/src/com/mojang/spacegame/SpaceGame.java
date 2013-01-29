@@ -749,7 +749,7 @@ private static ByteBuffer loadIcon(URL url)
 		{
 			game = new SpaceGame(SpaceGame.class.getResourceAsStream("/computer/testdump.dmp"));
 			try {
-				new Assembler(game.cpu.ram).assemble("testfile.txt");
+				new Assembler(game.cpu.ram).assemble("crashtest.txt");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

@@ -1,0 +1,146 @@
+;        /'-------~/"\~-------'\        ;
+;        \ |`- /\ | /\ |_| _|_ /        ;
+;        / |`  |< | \1 | |  |  \        ;
+;        \/`'~'`\,~'"'~,/`'~'`\/        ;
+;        :       Tutorial      :        ;
+;        :     Text Editor     :        ;
+;        \~'`\,~'`\.^./`'~,/`'~/        ;
+;                                       ;
+; You can find an uncommented version @ ;
+;        http://0x10co.de/3034j         ;
+
+
+; First, we register the keyboard and   ;
+; monitor, because these are the only   ;
+; devices we will use.                  ;
+	hwn i
+:map_hardware
+	sub i, 1
+	hwq i
+	ife b, 0x7349
+		ife a, 0xF615
+			set [MONITOR], i
+	ife b, 0x30CF
+		ife a, 0x7406
+			set [KEYBOARD], i
+	ifn i, 0
+		set pc, map_hardware
+
+; Next, we set the monitor's screen to  ;
+; start at the memory location 0x8000.  ;
+:initialize_monitor
+	set a, 0
+	set b, 0x8000
+	hwi [MONITOR]
+    set a, 0
+	set b, 0x8000
+	hwi [MONITOR]
+
+; We will use the 'x' to store the font ;
+; color, 'i' to store the symbol for the;
+; cursor, and 'j' to store the location ;
+; of the cursor.                        ;
+;
+
+:initialize_editor
+	set x, 0xA000	; Font-color
+	set i, 0x005F	; Cursor symbol
+; We can use the bitwise OR (bor) to set;
+; flags, such as the blinking flag on   ;
+; our cursor. Each character is layed   ;
+; out like this:                        ;
+; ffff bbbb Bccc cccc                   ;
+; B is the blink bit.                   ;
+;                                       ;
+; If we have a character, such as 0x005f;
+; which is the underscore '_' and we bor;
+; it with the blinking bit, this is what;
+; happens:                              ;
+;                                       ;
+; 0000 0000 1000 0000  =  0x0080        ;
+; 0000 0000 0101 1111  =  0x005F        ;
+; =======(BOR)=======  =  ======        ;
+; 0000 0000 1101 1111  =  0x00DF        ;
+;                                       ;
+; As you can see, bitwise OR combines 1s;
+; and when we use 0x0080, this sets the ;
+; Blink bit on.                         ;
+	bor i, 0x0080	; Make cursor blink ;
+	bor i, x		; Set cursor color  ;
+	set j, 0		; Cursor location   ;
+	set a, 1		; Keyboard Interrupt;
+
+; This loop will request pressed keys   ;
+; from the keyboard and then go to the  ;
+; correct method for that key.          ;
+:key_loop
+; This will set the cursor's symbol on  ;
+; the cursor's position.                ;
+	set [0x8000 + j], i
+; When we interrupt the keyboard, and a ;
+; is set to 1, the keyboard sets c to   ;
+; the character that was pressed.       ;
+	hwi [KEYBOARD]
+
+; If no keys are pressed, the keyboard  ;
+; sets c to 0. So we redo the loop.     ;
+	ife c, 0
+		set pc, key_loop
+; If backspace is pressed, we use jsr to;
+; jump to the sub-routine, or method,   ;
+; named 'backspace'. jsr allows us to   ;
+; return to this point when we are done ;
+; with the method.
+	ife c, 0x10
+		jsr backspace
+; We can use the if-greater-than and if-;
+; less-than functions to ignore special ;
+; keys like INSERT, DELETE, CTRL, ENTER ;
+	ifg c, 0x1F
+		ifl c, 0x80
+			jsr write
+	set pc, key_loop
+
+; This method will write the character, ;
+; that was pressed, onto the screen.    ;
+:write
+; BOR will set the character's color.   ;
+	bor c, x
+; Then we set the location of the cursor;
+; to the character that was typed.      ;
+	set [0x8000 + j], c
+; We move the cursor forward one spot.  ;
+	add j, 1
+; When we use 'jsr write', what happens ;
+; is, the dcpu saves the 'pc', the      ;
+; programs current running position.    ;
+; We can return to where we used jsr by ;
+; using the following line.             ;
+	set pc, pop
+
+; This method will be called when the   ;
+; backspace key is pressed. It will get ;
+; rid of the current cursor on-screen,  ;
+; move back one position, then place the;
+; cursor over whatever was there before.;
+:backspace
+; If we are at the top of the screen, we;
+; don't want to delete, so we simply    ;
+; leave this method.                    ;
+	ife j, 0
+		set pc, pop
+; If we aren't at the beginning, we get ;
+; rid of the current cursor on-screen.  ;
+	set [0x8000 + j], 0
+; We move the cursor back one position. ;
+	sub j, 1
+; And we leave this method.             ;
+	set pc, pop
+
+
+; As always, we need a place to store   ;
+; our index for our devices. We are only;
+; using the keyboard and monitor, so we ;
+; allocate space for those two devices. ;
+:MONITOR		dat 0xB00B
+:KEYBOARD		dat 0xB00B
