@@ -1,21 +1,12 @@
 package computer;
 
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.geom.AffineTransform;
-import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.ThreadLocalRandom;
 
 import javax.swing.JFrame;
 
@@ -262,10 +253,14 @@ public class DCPU
     
     if (isOnFire) {
 //      cycles += 10; //Disabled to match speed of crashing seen in livestreams
-      int pos = ThreadLocalRandom.current().nextInt();//65536);//(int)(Math.random() * 65536) & 0xFFFF;
-      char val = (char) (pos >> 16);//(char) ThreadLocalRandom.current().nextInt(65536);///(int)(Math.random() * 65536) & 0xFFFF;
-//      pos &= 0xFFFF;
+    	/* For Java 7+
+    	int pos = ThreadLocalRandom.current().nextInt();
+      char val = (char) (pos >> 16);//(char) ThreadLocalRandom.current().nextInt(65536);
       int len = (int)(1 / (ThreadLocalRandom.current().nextFloat() + 0.001f)) - 80;
+      */
+      int pos = (int)(Math.random() * 65536) & 0xFFFF;
+      char val = (char) ((int)(Math.random() * 65536) & 0xFFFF);
+      int len = (int)(1 / (Math.random() + 0.001f)) - 80;
       for (int i = 0; i < len; i++) {
         ram[(pos + i) & 0xFFFF] = val;
       }
