@@ -1,11 +1,16 @@
 package computer;
 
 public class DefaultControllableDCPU extends DCPU {
-	public boolean running;
 	private boolean keepAlive;
 
+	@Override
+	public void interrupt(char a) {
+		if (keepAlive) {
+			super.interrupt(a);
+		}
+	}
+	
 	public void run() {
-		running = true;
 		keepAlive = true;
 		(new Thread() {
 			@Override
@@ -46,7 +51,7 @@ public class DefaultControllableDCPU extends DCPU {
 
 		      while (System.currentTimeMillis() > time) {
 		        time += 1000L;
-		        System.out.println("1 DCPU at " + ops / 1000.0 + " khz, " + tick * 100.0 / total + "% cpu use");
+//		        System.out.println("1 DCPU at " + ops / 1000.0 + " khz, " + tick * 100.0 / total + "% cpu use");
 		        tick = total = ops = 0L;
 		      }
 		    }

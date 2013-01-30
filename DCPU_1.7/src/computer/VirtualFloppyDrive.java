@@ -73,7 +73,7 @@ public class VirtualFloppyDrive extends DCPUHardware
     	if (sector <= MAX_SECTOR && (state == STATE_READY || state == STATE_READY_WP)) {
     		operation = new FloppyOperation(FloppyOperation.READ, sector, dcpu.registers[4], 
     				dcpu.cycles + READ_CYCLES_PER_SECTOR + SEEK_CYCLES_PER_TRACK
-    				* Math.abs(track - (sector % SECTORS_PER_TRACK)));
+    				* Math.abs(track - (sector / SECTORS_PER_TRACK)));
     		dcpu.registers[1] = 1;
     		setState(STATE_BUSY);
     	} else {
@@ -91,7 +91,7 @@ public class VirtualFloppyDrive extends DCPUHardware
     	if (sector <= MAX_SECTOR && state == STATE_READY) {
     		operation = new FloppyOperation(FloppyOperation.WRITE, sector, dcpu.registers[4], 
     				dcpu.cycles + WRITE_CYCLES_PER_SECTOR + SEEK_CYCLES_PER_TRACK 
-    				* Math.abs(track - (sector % SECTORS_PER_TRACK)));
+    				* Math.abs(track - (sector / SECTORS_PER_TRACK)));
     		dcpu.registers[1] = 1;
     		setState(STATE_BUSY);
     	} else {
@@ -134,7 +134,8 @@ public class VirtualFloppyDrive extends DCPUHardware
 	  		for (int i = 0; i < 512; i++) {
 	  			dcpu.ram[operation.memory + i] = floppy.data[operation.sector * WORDS_PER_SECTOR + i];
 	  		}
-	  		track = operation.sector % SECTORS_PER_TRACK;
+	  		track = operation.sector / SECTORS_PER_TRACK;
+//	  		System.out.println("Read sector " + operation.sector + " in track " + track + " to 0x" +  Integer.toHexString(operation.memory));
 	  		operation = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 	  		setState(floppy.isWriteProtected() ? STATE_READY_WP : STATE_READY, ERROR_NONE);
 	  		break;
@@ -142,7 +143,8 @@ public class VirtualFloppyDrive extends DCPUHardware
 	  		for (int i = 0; i < 512; i++) {
 	  			floppy.data[operation.sector * WORDS_PER_SECTOR + i] = dcpu.ram[operation.memory + i];
 	  		}
-	  		track = operation.sector % SECTORS_PER_TRACK;
+	  		track = operation.sector / SECTORS_PER_TRACK;
+//	  		System.out.println("Wrote sector " + operation.sector + " in track " + track + " from 0x" +  Integer.toHexString(operation.memory));
 	  		operation = new FloppyOperation(FloppyOperation.NONE, 0, 0, Integer.MAX_VALUE);
 	  		setState(STATE_READY, ERROR_NONE);
 	  		break;
@@ -189,5 +191,9 @@ public class VirtualFloppyDrive extends DCPUHardware
 			this.memory = memory;
 			this.cycles = cycles;
 		}
+	}
+
+	public FloppyDisk getDisk() {
+		return floppy;
 	}
 }
