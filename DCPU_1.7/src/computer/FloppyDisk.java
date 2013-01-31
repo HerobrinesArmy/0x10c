@@ -15,8 +15,9 @@ public class FloppyDisk {
 			this.writeProtected = writeProtected;
 			DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
 			try {
-	      for (int i = 0; ; i++)
-	        data[i] = dis.readChar();
+	      for (int i = 0; ; i++) {
+	      	data[i] = dis.readChar();
+	      }
 	    }
 	    catch (IOException e) {
 	      dis.close();

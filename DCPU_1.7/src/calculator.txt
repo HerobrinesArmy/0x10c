@@ -1,0 +1,515 @@
+; ============================================
+; Title:   Calculator
+; Author:  Raphael Brandão
+; Date:    30/10/2012
+; Version: 2
+; --------------------------------------------
+; CONTACT:
+; * Email-me at:
+;   raphael.b.souza@hotmail.com
+; * Layout designed in:
+;   www.0x8000.com
+; * Check my Youtube channel:
+;   www.youtube.com/0x10cBR
+; ============================================
+
+;             +++++++++++++++++
+;             + USE ON DEVKIT +
+; ++++++++++++++++++++++++++++++++++++++++++
+; + ONLY SUPPORTS INTEGERS BETWEEN 0-65535 +
+; ++++++++++++++++++++++++++++++++++++++++++
+
+;--------------------------------------------
+; DESCRIPTION: 
+; A 2 numbers calculator.
+; Makes basic operations (+,-,*,/)
+;--------------------------------------------
+; HOW IT WORKS:
+; Creates a string concatenating numbers 
+; into one hex number. Then it makes the 
+; calcs and recombine the hex number into 
+; one string to print it out.
+; --------------------------------------------
+; FEATURES: 
+; * detects numbers pressed in the keypad
+; * detects signals pressed in the keyboard
+; * UI that can be navigated using WASD
+; * A cleaner method for multiples calcs 
+; --------------------------------------------
+; HOW TO USE:
+; * Keys:
+; - W,A,S,D for moving arround
+; - 0,1,2,3,4,5,6,7,8,9 to make your number
+; - +,-,*,/ to make the calc
+; - ESC to clean all (C on the calculator)
+; - ENTER to select
+; - BackSpace to erase
+; * Try:
+; 	Write any numbers and signals in
+; 	your keyboard, like:
+; 		12+2
+; 	When you press the caracter '=' it will
+; 	make the calc and print the result.
+; ============================================
+
+; ----------------------
+; |	Program structure: |
+; ----------------------
+JSR initDevices
+SET Z,34
+SET Y,260
+SET PC,blinkY
+SET PC,keyboardLoop
+
+;+++++++++++++++++++++++++++++++++++++++++
+:copywriteLabel                         ;+
+dat 0x0051,0x0820,0x0820,0xC043,0xC072  ;+
+dat 0xC065,0xC061,0xC074,0xC065,0xC064  ;+
+dat 0x0820,0xC062,0xC079,0x0820,0xC052  ;+
+dat 0xC061,0xC070,0xC068,0xC061,0xC065  ;+
+dat 0xC06c,0x0820,0xC042,0xC072,0xC061  ;+
+dat 0xC06e,0xC064,0xC061,0xC06f,0x0820  ;+
+dat 0x0820,0						    ;+
+;+++++++++++++++++++++++++++++++++++++++++
+
+; -------------------------
+; 	Initializing devices: |
+; -------------------------
+:initDisplay
+	SET [displayNumber], I
+	SET A,0
+	SET B,0x8000
+	HWI [displayNumber]
+	JSR displayBorder
+	SET C,0
+SET PC,POP
+
+:initKeyboard
+	SET [keyboardNumber],I
+	SET B,0	
+SET PC,POP
+
+:displayBorder
+	SET A,3
+	SET B,0x0
+	HWI [displayNumber]
+SET PC,POP
+
+:printCopywrite
+	SET [0x8140+C],[copywriteLabel+C]
+	ADD C,1
+	IFN [copywriteLabel+C],0
+		SET PC,printCopywrite
+SET PC,POP
+
+:displayLayout
+	SET [0x8000+C],[layout+C]
+	ADD C,1
+	IFN [layout+C],0
+		SET PC,displayLayout
+SET PC,POP
+
+:initDevices
+	HWN I
+	HWQ I
+	IFE A,0x7406
+		JSR initKeyboard
+	IFE A,0xf615
+		JSR initDisplay
+	SUB I,1
+	IFN I,0
+		SET PC,[copywriteLabel]
+SET PC,POP
+
+
+; ---------------------------
+; 	Listening the keyboard: |
+; ---------------------------
+:keyboardLoop
+	SET A,1
+	HWI [keyboardNumber]
+	IFE C,0
+		SET PC,keyboardLoop
+	SET A,0
+SET PC,dataReader
+
+; ---------------------
+;   Y Interpretation: |
+; ---------------------
+:yReader
+	IFE Y,260 ;number 1
+		SET C,0x31
+	IFE Y,265 ;number 2
+		SET C,0x32
+	IFE Y,270 ;number 3
+		SET C,0x33
+	IFE Y,196 ;number 4
+		SET C,0x34
+	IFE Y,201 ;number 5
+		SET C,0x35
+	IFE Y,206 ;number 6
+		SET C,0x36
+	IFE Y,132 ;number 7
+		SET C,0x37
+	IFE Y,137 ;number 8
+		SET C,0x38
+	IFE Y,142 ;number 9
+		SET C,0x39
+	IFE Y,275 ;number 0
+		SET C,0x30
+	IFE Y,211 ;+
+		SET C,0x2b
+	IFE Y,279 ;-
+		SET C,0x2d
+	IFE Y,151 ;*
+		SET C,0x2a
+	IFE Y,215 ;/
+		SET C,0x2f
+	IFE Y,147 ;C
+		SET C,0x1b
+	IFE Y,251 ;=
+		SET C,0x3D
+SET PC,dataReader
+
+
+; ------------------------
+;   Data Interpretation: |
+; ------------------------
+:dataReader
+	;Condition for X limit in the text field:
+	IFE Z,34
+		IFE C,0x10
+			SET PC,keyboardLoop
+	IFE Z,62
+		SET PC,keyboardLoop
+		
+	;Condition for WASD:
+	IFE C,0x77
+		SET PC,keyW
+	IFE C,0x61
+		SET PC,keyA
+	IFE C,0x73
+		SET PC,keyS
+	IFE C,0x64
+		SET PC,keyD
+		
+	;Enter key
+	IFE C,0x11
+		SET PC,yReader
+	
+	;Erase all:
+	IFE C,0x1B
+		SET PC,cleaner
+			
+	;Condition for +,-,*,/:
+	IFE C,0x2b
+		SET PC,signalSum
+	IFE C,0x2d
+		SET PC,signalSub
+	IFE C,0x2a
+		SET PC,signalMul
+	IFE C,0x2f
+		SET PC,signalDiv
+		
+	;Condition for Backspace:
+	IFE C,0x10
+		SET PC,backspaceKey
+		
+	;Condition for =:
+	IFE C,0x3D
+		SET PC,equal
+		
+	;IF C equals to any_number then make
+	;ALL algarisms before the signal
+	;and before the equal to be ONE
+	;number in HEX
+	;OBS: The :signal split the number
+		; before and after the signal
+	SET A,C
+	SUB A,0x30
+	ADD I,A
+	MUL I,10
+	ADD J,1
+	SET [number+J],I
+SET PC,renderDisplay
+
+;====================
+; Navigate with WASD:
+;====================
+:keyW
+	IFN Y,251
+		SET PC,othersW
+	SET Y,215
+	SET PC,overW
+	:othersW
+		SET A,Y
+		SUB A,64
+		IFL A,132
+			SET pc,overW
+		SUB Y,64
+	:overW
+SET PC,blinkY
+
+:keyA
+	IFE Y,251
+		SET PC,overA
+	SET A,Y
+	MOD A,32
+		IFE A,9
+			SUB Y,5
+		IFE A,14
+			SUB Y,5
+		IFE A,19
+			SUB Y,5
+		IFE A,23
+			SUB Y,4
+	SET PC,blinkY
+	:overA
+		SET Y,215
+SET PC,blinkY
+
+:keyS
+	IFN Y,251
+		SET PC,othersS
+	SET Y,279
+	SET PC,overS
+	:othersS
+		SET A,Y
+		ADD A,64
+		IFG A,279
+			SET pc,overS
+		ADD Y,64
+	:overS
+SET PC,blinkY
+
+:keyD
+	IFE Y,279
+		SET PC,overD
+	IFE Y,215
+		SET PC,overD
+	SET A,Y
+	MOD A,32
+		IFE A,19
+			ADD Y,4
+		IFE A,14
+			ADD Y,5
+		IFE A,9
+			ADD Y,5
+		IFE A,4
+			ADD Y,5
+	SET PC,blinkY
+	:overD
+		SET Y,251
+SET PC,blinkY
+
+
+;==================
+; Do the ESC thing:
+;==================
+:cleaner
+	SET [0x8000+Z],0x20
+	SUB Z,1
+	IFN Z,34
+	SET PC,cleaner
+SET [0x8000+Z],0x20
+SET SP,0000
+SET A,0
+SET I,0
+SET J,0
+SET PC,keyboardLoop
+
+;=======
+; Erase
+;=======
+:backspaceKey
+	SUB Z,1
+	SET [0x8000+Z],0x0020
+	IFE I,0
+		SET PC,keyboardLoop
+	SUB J,1
+	SET I,[number+J]
+SET PC,keyboardLoop
+
+;=======
+; Equal
+;=======
+:equal
+	DIV I,10
+	SET A,POP
+	IFE X,0
+		ADD A,I
+	IFE X,1
+		SUB A,I
+	IFE X,2
+		MUL A,I
+	IFE X,3
+		DIV A,I
+	SET PUSH,A
+	SET A,0
+	SET I,0
+SET PC,convertToHex
+
+;============================
+; Convert HEX to String-Label
+;============================
+:convertToHex
+	SET A,[0xFFFF]
+	MOD A,10
+	ADD A,0x30
+	SET [mathRes+I],A
+
+	SET A,[0xFFFF]
+	DIV A,10
+	SET [0xFFFF],A
+	ADD I,1	
+	IFN A,0
+		SET PC,convertToHex
+	SET [mathRes+I],0
+	SUB I,1
+SET PC,renderRes
+
+
+;=================
+; PUT SIGNAL IN X
+;=================
+:signalSum
+	SET X,0
+SET PC,signal
+
+:signalSub
+	SET X,1
+SET PC,signal
+
+:signalMul
+	SET X,2
+SET PC,signal
+
+:signalDiv
+	SET X,3
+SET PC,signal
+
+:signal
+	IFE I,0
+		SET PC,renderDisplay
+	DIV I,10
+	SET PUSH,I
+	SET I,0
+SET PC,renderDisplay
+
+; -------------------------
+;   Blink pos on Display: |
+; -------------------------
+:blinkY
+JSR displayLayout
+SET C,0
+JSR printCopywrite
+SUB Y,1
+SET [0x8000+Y],0xC8DB
+ADD Y,2
+SET [0x8000+Y],0xC8DD
+SUB Y,1
+SET PC,keyboardLoop
+
+
+; ----------------------
+;   Render on Display: |
+; ----------------------
+:renderDisplay
+	BOR C,[fontColor]
+	SET [0x8000+Z],C
+	SET C,0
+	ADD Z,1	
+SET PC,keyboardLoop
+
+:renderRes
+	BOR C,[fontColor]
+	SET [0x8000+Z],C
+	SET C,0
+	:renderLoop
+	ADD Z,1	
+	SET [0x8000+Z],[mathRes+I]
+	BOR [0x8000+Z],[fontColor]
+	SUB I,1
+	IFN I,0xffff
+		SET PC,renderLoop
+SET PC,keyboardLoop
+
+
+; ------------------
+;  Labels - Begin |
+; ------------------
+	;Operand label:
+		:number DAT 0
+	;Result label:
+		:mathRes DAT 0,0,0,0,0
+	;Keyboard Label:
+		:keyboardNumber DAT 0
+	;Font Label:
+		:fontColor DAT 0xf000
+	;Screen Labels:
+		:displayNumber DAT 0
+	;Display Layout:
+		:layout dat 0x0020,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0020,0x0020,0x0820,0x0820,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0820,0x0820,0x0020,0x0020,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0020
+				dat 0x0020,0x0820,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0820,0x0020,0x0020,0x0820,0x0020,0x0820
+				dat 0xF037,0x0820,0x0020,0x0020,0x0820,0xF038
+				dat 0x0820,0x0020,0x0020,0x0820,0xF039,0x0820
+				dat 0x0020,0x0020,0x0820,0xC043,0x0820,0x0020
+				dat 0x0820,0xB02a,0x0820,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0820,0x0020,0x0020,0x0820
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0820,0x0020
+				dat 0x0020,0x0820,0x0020,0x0820,0xF034,0x0820
+				dat 0x0020,0x0020,0x0820,0xF035,0x0820,0x0020
+				dat 0x0020,0x0820,0xF036,0x0820,0x0020,0x0020
+				dat 0x0820,0xB02b,0x0820,0x0020,0x0820,0xB02f
+				dat 0x0820,0x0020,0x0820,0x0820,0x0820,0x0020
+				dat 0x0820,0x0020,0x0020,0x0820,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0820,0xB03D
+				dat 0x0820,0x0020,0x0820,0x0020,0x0020,0x0820
+				dat 0x0020,0x0820,0xF031,0x0820,0x0020,0x0020
+				dat 0x0820,0xF032,0x0820,0x0020,0x0020,0x0820
+				dat 0xF033,0x0820,0x0020,0x0020,0x0820,0xF030
+				dat 0x0820,0x0020,0x0820,0xB02d,0x0820,0x0020
+				dat 0x0820,0x0820,0x0820,0x0020,0x0820,0x0020
+				dat 0x0020,0x0820,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0020,0x0020,0x0020,0x0020,0x0020,0x0020
+				dat 0x0820,0x0020,0x0020,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0020,0x0020,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0820
+				dat 0x0820,0x0820,0x0820,0x0820,0x0820,0x0020
