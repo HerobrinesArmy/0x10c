@@ -10,6 +10,7 @@ public class DefaultControllableDCPU extends DCPU {
 		(new Thread() {
 			@Override
 			public void run() {
+//				opcounts = new int[64];
 				long ops = 0L;
 		    int hz = 1000 * khz;
 		    int cyclesPerFrame = hz / 60 + 1;
@@ -72,5 +73,18 @@ public class DefaultControllableDCPU extends DCPU {
 	
 	public void stop() {
 		keepAlive = false;
+//		System.out.flush();
+//		System.out.println("OpCodes used:");
+//		for (int i = 0; i < 64; i++) {
+//			if (opcounts[i] > 0) {
+//				if (i > 31) {
+//					System.out.println(OpCodes.special.getName(i-32));
+//				} else {
+//					System.out.println(OpCodes.basic.getName(i));
+//				}
+//			} else {
+//				System.out.println();
+//			}
+//		}
 	}
 }

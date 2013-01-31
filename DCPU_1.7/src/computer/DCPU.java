@@ -36,6 +36,7 @@ public class DCPU
   int ip;
   int iwp;
 	public boolean disassemble = DISASSEMBLE;
+//	public int[] opcounts = new int[64];
 
   public int getAddrB(int type)
   {
@@ -305,6 +306,7 @@ public class DCPU
       cmd = opcode >> 5 & 0x1F;
       if (cmd != 0)
       {
+//      	opcounts[32+cmd]++;
         int atype = opcode >> 10 & 0x3F;
         int aaddr = getAddrA(atype);
         char a = get(aaddr);
@@ -371,6 +373,7 @@ public class DCPU
         }
       }
     } else {
+//    	opcounts[cmd]++;
       int atype = opcode >> 10 & 0x3F;
 
       char a = getValA(atype);
@@ -380,6 +383,11 @@ public class DCPU
       char b = get(baddr);
 
       switch (cmd) {
+//      case 0:
+//      	if (this instanceof DefaultControllableDCPU) {
+//      		((DefaultControllableDCPU)this).stop();
+//      	}
+//      	break;
       case 1: //SET
         b = a;
         break;
