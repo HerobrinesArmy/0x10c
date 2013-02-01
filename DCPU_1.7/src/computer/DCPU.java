@@ -1,14 +1,10 @@
 package computer;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-
-import javax.swing.JFrame;
 
 /**
  * Experimental 1.7 update to Notch's 1.4 emulator
@@ -425,7 +421,7 @@ public class DCPU
           ex = (char)(int)val;
         }
         break;
-      }case 7:{ //DVI TODO: Ensure Rounds towards 0
+      }case 7:{ //DVI
         cycles += 2;
         if (a == 0) {
           b = ex = 0;
@@ -621,91 +617,6 @@ public class DCPU
       ((DCPUHardware)hardware.get(i)).tick60hz();
   }
 
-  private static void attachDisplay(final DCPU cpu)
-  {
-  	final DefaultMonitorCanvas canvas = new DefaultMonitorCanvas();
-  	final VirtualClock clock = (VirtualClock) new VirtualClock().connectTo(cpu);
-//    final VirtualMonitor display = (VirtualMonitor)new VirtualMonitor().connectTo(cpu);
-//    final VirtualKeyboard keyboard = (VirtualKeyboard)new VirtualKeyboard(new AWTKeyMapping()).connectTo(cpu);
-    final VirtualFloppyDrive floppyDrive = (VirtualFloppyDrive) new VirtualFloppyDrive().connectTo(cpu);
-    floppyDrive.insert(new FloppyDisk());
-    final VirtualSleepChamber sleepChamber = (VirtualSleepChamber) new VirtualSleepChamber().connectTo(cpu);
-    final VirtualVectorDisplay vectorDisplay = (VirtualVectorDisplay) new VirtualVectorDisplay().connectTo(cpu);
-    canvas.addKeyListener(new KeyListener() {
-			@Override
-			public void keyTyped(KeyEvent e) {
-			}
-			@Override
-			public void keyReleased(KeyEvent e) {
-			}
-			@Override
-			public void keyPressed(KeyEvent e) {
-				if (e.getKeyCode() == KeyEvent.VK_0) {
-      		canvas.display.connectTo(cpu);
-      	}
-			}
-		});
-    JFrame frame = new JFrame();
-    frame.add(canvas);
-    frame.pack();
-    frame.setLocationRelativeTo(null);
-    frame.setResizable(false);
-    frame.setDefaultCloseOperation(3);
-    frame.setVisible(true);
-  }
-
-  private static void testCpu(char[] ram)
-  {
-    DCPU cpu = new DCPU();
-    for (int j = 0; j < 65536; j++) {
-      cpu.ram[j] = ram[j];
-    }
-    
-    attachDisplay(cpu);
-
-    long ops = 0L;
-    int hz = 1000 * khz;
-    int cyclesPerFrame = hz / 60 + 1;
-
-    long nsPerFrame = 16666666L;
-    long nextTime = System.nanoTime();
-
-    double tick = 0;
-    double total = 0;
-
-    long time = System.currentTimeMillis();
-    while (!stop) {
-      long a = System.nanoTime();
-      while (System.nanoTime() < nextTime) {
-        try {
-          Thread.sleep(1L);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-      long b = System.nanoTime();
-      while (cpu.cycles < cyclesPerFrame) {
-        cpu.tick();
-      }
-
-      cpu.tickHardware();
-      cpu.cycles -= cyclesPerFrame;
-      long c = System.nanoTime();
-      ops += cyclesPerFrame;
-      nextTime += nsPerFrame;
-
-      tick += (c - b) / 1000000000.0;
-      total += (c - a) / 1000000000.0;
-
-      while (System.currentTimeMillis() > time) {
-        time += 1000L;
-        System.out.println("1 DCPU at " + ops / 1000.0 + " khz, " + tick * 100.0 / total + "% cpu use");
-        tick = total = ops = 0L;
-      }
-    }
-    cpu.dumpRegisters();
-  }
-
   public void dumpRegisters()
   {
     System.out.print("A: " + Integer.toHexString(registers[0]) + ", ");
@@ -756,40 +667,5 @@ public class DCPU
 
       System.out.println();
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    final DCPU cpu = new DCPU();
-    new Assembler(cpu.ram).assemble("crashtest.txt");
-//    cpu.load(cpu.ram);
-    
-//    DCPU.dump(cpu.ram, 0, 1024);
-    if (args.length == 0) {
-      testCpu(cpu.ram);
-      return;
-    }
-
-    int threads = args.length > 0 ? Integer.parseInt(args[0]) : 1;
-    final int cpusPerCore = args.length > 1 ? Integer.parseInt(args[1]) : 100;
-    int seconds = args.length > 2 ? Integer.parseInt(args[2]) : 5;
-
-    System.out.println("Aiming at 100 khz, with " + cpusPerCore + " DCPUs per thread, on " + threads + " threads.");
-    System.out.println("");
-    System.out.println("Running test for " + seconds + " seconds..");
-
-    for (int i = 0; i < threads; i++) {
-      new Thread() {
-        public void run() {
-          DCPU.testCpus(cpusPerCore, cpu.ram);
-        }
-      }
-      .start();
-    }
-
-    for (int i = seconds; i > 0; i--) {
-      System.out.println(i + "..");
-      Thread.sleep(1000L);
-    }
-    stop = true;
   }
 }

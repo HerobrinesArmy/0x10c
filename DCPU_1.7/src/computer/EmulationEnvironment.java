@@ -35,7 +35,7 @@ public class EmulationEnvironment {
 	private DefaultAWTKeyboard keyboard;
 	private VirtualFloppyDrive floppyDrive;
 	private VirtualSleepChamber sleepChamber;
-  private VirtualVectorDisplay vectorDisplay;
+  private DefaultAWTVectorDisplay vectorDisplay;
 	private JFrame frame;
 	private LinkedHashMap<String, FloppyDisk> floppies = new LinkedHashMap<String, FloppyDisk>();
 	
@@ -247,11 +247,23 @@ public class EmulationEnvironment {
     
     JCheckBoxMenuItem vectorDisplayItem = new JCheckBoxMenuItem("SPED-3");
     vectorDisplayItem.addItemListener(new ItemListener() {
+    	JFrame frame;
+    	
     	public void itemStateChanged(ItemEvent e) {
     		boolean selected = e.getStateChange() == ItemEvent.SELECTED;
     		if (selected) {
-    			vectorDisplay = (VirtualVectorDisplay) new VirtualVectorDisplay().connectTo(dcpu);
+    			vectorDisplay = (DefaultAWTVectorDisplay) new DefaultAWTVectorDisplay().connectTo(dcpu);
+    			frame = new JFrame("SPED-3");
+    			frame.add(vectorDisplay.canvas);
+    			frame.pack();
+    	    frame.setLocationRelativeTo(null);
+    	    frame.setResizable(false);
+//    	    frame.setDefaultCloseOperation(3);
+    	    frame.setVisible(true);
     		} else {
+    			frame.removeAll();
+    			frame.setVisible(false);
+    			frame.dispose();
     			vectorDisplay.disconnect();
     			vectorDisplay = null;
     		}

@@ -37,9 +37,9 @@ public class VirtualVectorDisplay extends DCPUHardware
 	private char mapStart;
 	private char mapLength;
 	private boolean broken;
-	private double angle;
+	protected double angle;
 	private double targetDelta;
-	private List<Vertex> vertices = new ArrayList<Vertex>();
+	protected List<Vertex> vertices = new ArrayList<Vertex>();
 	
   public VirtualVectorDisplay() {
     super(0x42babf3c, 0x0003, 0x1eb37e91);
@@ -105,6 +105,10 @@ public class VirtualVectorDisplay extends DCPUHardware
 		}
 //		System.out.println("Vertices: " + vertices.size() + ", Angle: " + angle + ", Target Delta: " + targetDelta);
   }
+	
+	public List<Vertex> getVertices() {
+		return vertices;
+	}
 	
 	public class Vertex {
 		int x;
