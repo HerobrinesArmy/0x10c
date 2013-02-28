@@ -249,7 +249,7 @@ public class DCPU
 
     if (disassemble)
     {
-    	System.out.println((pc < 0x1000 ? "0" : "") + (pc < 0x100 ? "0" : "") + Integer.toHexString(pc) + ": " + disassemble(ram, pc));
+//    	System.out.println((pc < 0x1000 ? "0" : "") + (pc < 0x100 ? "0" : "") + Integer.toHexString(pc) + ": " + disassemble(ram, pc));
     }
     
     if (isOnFire) {
@@ -268,6 +268,10 @@ public class DCPU
     }
 
     if (isSkipping) {
+    	if (disassemble)
+      {
+    		System.out.println((pc < 0x1000 ? "0" : "") + (pc < 0x100 ? "0" : "") + Integer.toHexString(pc) + ": " + disassemble(ram, pc));
+      }
       char opcode = ram[pc];
       int cmd = opcode & 0x1F;
       pc = (char)(pc + getInstructionLength(opcode));
@@ -294,7 +298,7 @@ public class DCPU
 	      }	
 	    }
     }
-
+    char pco = pc;
     char opcode = ram[pc++];
 
     int cmd = opcode & 0x1F;
@@ -306,7 +310,10 @@ public class DCPU
         int atype = opcode >> 10 & 0x3F;
         int aaddr = getAddrA(atype);
         char a = get(aaddr);
-
+        if (disassemble)
+        {
+        	System.out.println((pco < 0x1000 ? "0" : "") + (pco < 0x100 ? "0" : "") + Integer.toHexString(pco) + ": " + disassemble(ram, pco) + "  a=" + Integer.toHexString(a));
+        }
         switch (cmd) {
         case 1: //JSR
           cycles += 2;
@@ -371,13 +378,14 @@ public class DCPU
     } else {
 //    	opcounts[cmd]++;
       int atype = opcode >> 10 & 0x3F;
-
       char a = getValA(atype);
-
       int btype = opcode >> 5 & 0x1F;
       int baddr = getAddrB(btype);
       char b = get(baddr);
-
+      if (disassemble)
+      {
+      	System.out.println((pco < 0x1000 ? "0" : "") + (pco < 0x100 ? "0" : "") + Integer.toHexString(pco) + ": " + disassemble(ram, pco) + "  b=" + Integer.toHexString(b) +", a=" + Integer.toHexString(a));
+      }
       switch (cmd) {
 //      case 0:
 //      	if (this instanceof DefaultControllableDCPU) {
@@ -416,9 +424,8 @@ public class DCPU
         if (a == 0) {
           b = ex = 0;
         } else {
-          long val = (b << 16) / a;
-          b = (char)(int)(val >> 16);
-          ex = (char)(int)val;
+          b /= a;
+          ex = (char) ((b << 16) / a);;
         }
         break;
       }case 7:{ //DVI
@@ -461,8 +468,8 @@ public class DCPU
         b = (char)(b >>> a);
         break;
       case 14: //ASR
-        ex = (char)(b << 16 >>> a);
-        b = (char)(b >> a);
+        ex = (char)((short)b << 16 >>> a);
+        b = (char)((short)b >> a);
         break;
       case 15: //SHL
         ex = (char)(b << a >> 16);
@@ -511,6 +518,7 @@ public class DCPU
         int val = b - a + ex;
         b = (char)val;
         ex = (char)(val >> 16);
+        break;
       }case 30: //STI
         b = a;
         registers[6]++;
@@ -552,9 +560,9 @@ public class DCPU
           return str;
         }
       } else {
-        int atype = opcode >> 10 & 0x3F;
-        int btype = opcode >> 5 & 0x1F;
-        str = OpCodes.basic.getName(cmd) + " " + getStr(btype, false) + ", " + getStr(atype, true);
+        String atype = getStr(opcode >> 10 & 0x3F, true);
+        String btype = getStr(opcode >> 5 & 0x1F, false);
+        str = OpCodes.basic.getName(cmd) + " " + btype + ", " + atype;
         return str;
       }
       return "!?!?!?";

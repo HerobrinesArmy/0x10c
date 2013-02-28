@@ -217,15 +217,23 @@ public class EmulationEnvironment {
     
     JCheckBoxMenuItem monitorItem = new JCheckBoxMenuItem("LEM1802");
     monitorItem.addItemListener(new ItemListener() {
+    	JFrame frame;
+    	
     	public void itemStateChanged(ItemEvent e) {
     		boolean selected = e.getStateChange() == ItemEvent.SELECTED;
     		if (selected) {
     			monitor = (DefaultAWTMonitor) new DefaultAWTMonitor().connectTo(dcpu);
+    			frame = new JFrame("LEM1802");
     			frame.add(monitor.canvas);
-    	    frame.pack();
-    		} else {
-    			frame.remove(monitor.canvas);
     			frame.pack();
+    	    frame.setLocationRelativeTo(null);
+    	    frame.setResizable(false);
+//    	    frame.setDefaultCloseOperation(3);
+    	    frame.setVisible(true);
+    		} else {
+    			frame.removeAll();
+    			frame.setVisible(false);
+    			frame.dispose();
     			monitor.disconnect();
     			monitor = null;
     		}
@@ -347,53 +355,6 @@ public class EmulationEnvironment {
     frame.setJMenuBar(menuBar);
 	}
 
-	public void startDCPU() {
-  	(new Thread(){
-  		public void run() {
-  			long ops = 0L;
-  	    int hz = 1000000;
-  	    int cyclesPerFrame = hz / 60;
-
-  	    long nsPerFrame = 16666666L;
-  	    long nextTime = System.nanoTime();
-
-  	    double tick = 0;
-  	    double total = 0;
-
-  	    long time = System.currentTimeMillis();
-  	    while (true) {//!stop) {
-  	      long a = System.nanoTime();
-  	      while (System.nanoTime() < nextTime) {
-  	        try {
-  	          Thread.sleep(1L);
-  	        } catch (InterruptedException e) {
-  	          e.printStackTrace();
-  	        }
-  	      }
-  	      long b = System.nanoTime();
-  	      while (dcpu.cycles < cyclesPerFrame) {
-  	        dcpu.tick();
-  	      }
-
-  	      dcpu.tickHardware();
-  	      dcpu.cycles -= cyclesPerFrame;
-  	      long c = System.nanoTime();
-  	      ops += cyclesPerFrame;
-  	      nextTime += nsPerFrame;
-
-  	      tick += (c - b) / 1000000000.0;
-  	      total += (c - a) / 1000000000.0;
-
-  	      while (System.currentTimeMillis() > time) {
-  	        time += 1000L;
-  	        System.out.println("1 DCPU at " + ops / 1000.0 + " khz, " + tick * 100.0 / total + "% cpu use");
-  	        tick = total = ops = 0L;
-  	      }
-  	    }  			
-  		}
-  	}).start();
-  }
-  
   public static void main(String[] args) throws Exception {
   	new EmulationEnvironment();
   }
